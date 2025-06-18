@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+    <title>Troubleshooting Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Troubleshooting Overview</h1>
+
+    <h2>Recently Updated</h2>
+    <ul>
+        {% for item in recently_updated %}
+            <li><strong>#{{ item.id }}</strong> — {{ item.issue_description }} ({{ item.last_updated }})</li>
+        {% endfor %}
+    </ul>
+
+    <form method="get" action="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">
+        Search: <input type="text" name="query" value="{{ query }}">
+        Status:
+        <select name="status">
+            <option value="All" {% if selected_status == 'All' %}selected{% endif %}>All</option>
+            <option value="Open" {% if selected_status == 'Open' %}selected{% endif %}>Open</option>
+            <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+            <option value="Resolved" {% if selected_status == 'Resolved' %}selected{% endif %}>Resolved</option>
+        </select>
+        <input type="submit" value="Go">
+    </form>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul>
+        {% for category, message in messages %}
+          <li class="flash {{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Device</th>
+                <th>Issue</th>
+                <th>Troubleshooting</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td>{{ ticket.id }}</td>
+                <td>{{ ticket.user_name }}</td>
+                <td>{{ ticket.device_id }}</td>
+                <td>{{ ticket.issue_description }}</td>
+                <td>{{ ticket.troubleshooting or 'N/A' }}</td>
+                <td class="{{ ticket.status|lower|replace(' ', '-') }}">{{ ticket.status }}</td>
+                <td>{{ ticket.date_reported }}</td>
+                <td><a href="{{ url_for('troubleshooting.handle_troubleshooting', id=ticket.id) }}">Edit</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <a href="{{ url_for('routes.index') }}">Back to Home</a>
+</body>
+</html>

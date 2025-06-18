@@ -1,0 +1,15 @@
+
+<!doctype html>
+<html>
+<head><title>Add Ticket</title></head>
+<body>
+    <h1>Add New Ticket</h1>
+    <form method="post">
+        Name: <input type="text" name="user_name"><br>
+        Device ID: <input type="text" name="device_id"><br>
+        Issue Description:<br><textarea name="issue_description"></textarea><br>
+        <input type="submit" value="Submit">
+    </form>
+    <a href="{{ url_for('routes.index') }}">Back to Tickets</a>
+</body>
+</html>
