@@ -28,6 +28,7 @@
 
 ### 🧩 Phase 2: Enhancements (v0.2)
 
+- [ ] Scaling troubleshooting details (more columns, more info can be manipulated)
 - [ ] Role-based access (admin vs user)
 - [ ] Device history log
 - [ ] Sort and prioritize based on urgency
