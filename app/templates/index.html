@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+    <title>IT Support Tickets</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>IT Support Tickets</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <a href="{{ url_for('routes.add_ticket') }}">Add New Ticket</a>
+    <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">Go to Troubleshooting Dashboard</a>
+    <table>
+        <tr>
+            <th>ID</th><th>User</th><th>Device</th><th>Issue</th><th>Date</th><th>Troubleshooting</th><th>Status</th><th>Actions</th>
+        </tr>
+        {% for ticket in tickets %}
+        <tr>
+            <td>{{ ticket.id }}</td>
+            <td>{{ ticket.user_name }}</td>
+            <td>{{ ticket.device_id }}</td>
+            <td>{{ ticket.issue_description }}</td>
+            <td>{{ ticket.date_reported }}</td>
+            <td>{{ ticket.troubleshooting or '' }}</td>
+            <td>{{ ticket.status }}</td>
+            <td>
+                <form action="{{ url_for('routes.delete_ticket', id=ticket.id) }}" method="post" style="display:inline">
+                    <input type="submit" value="Delete" onclick="return confirm('Are you sure?')">
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
