@@ -41,11 +41,16 @@
             <tr>
                 <th>ID</th>
                 <th>User</th>
-                <th>Device</th>
+                <th>Device ID</th>
+                <th>Device Type</th>
+                <th>Priority</th>
+                <th>Category</th>
+                <th>Assigned To</th>
                 <th>Issue</th>
                 <th>Troubleshooting</th>
                 <th>Status</th>
-                <th>Date</th>
+                <th>Due Date</th>
+                <th>Date Reported  </th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -55,11 +60,18 @@
                 <td>{{ ticket.id }}</td>
                 <td>{{ ticket.user_name }}</td>
                 <td>{{ ticket.device_id }}</td>
+                <td>{{ ticket.device_type or '-'}}</td>
+                <td>{{ ticket.priority or '—' }}</td>
+                <td>{{ ticket.category or '—' }}</td>
+                <td>{{ ticket.assigned_to or '—' }}</td>
                 <td>{{ ticket.issue_description }}</td>
                 <td>{{ ticket.troubleshooting or 'N/A' }}</td>
                 <td class="{{ ticket.status|lower|replace(' ', '-') }}">{{ ticket.status }}</td>
-                <td>{{ ticket.date_reported }}</td>
-                <td><a href="{{ url_for('troubleshooting.handle_troubleshooting', id=ticket.id) }}">Edit</a></td>
+                <td>{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '—' }}</td>
+                <td>{{ ticket.date_reported.strftime('%Y-%m-%d') if ticket.date_reported else '—' }}</td>
+                <td>
+                    <a href="{{ url_for('troubleshooting.handle_troubleshooting', id=ticket.id) }}">Edit</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
