@@ -59,7 +59,7 @@
             <tr>
                 <td>{{ ticket.id }}</td>
                 <td>{{ ticket.user_name }}</td>
-                <td>{{ ticket.device_id }}</td>
+                <td>{{ ticket.device_code }}</td>
                 <td>{{ ticket.device_type or '-'}}</td>
                 <td>{{ ticket.priority or '—' }}</td>
                 <td>{{ ticket.category or '—' }}</td>
@@ -70,7 +70,7 @@
                 <td>{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '—' }}</td>
                 <td>{{ ticket.date_reported.strftime('%Y-%m-%d') if ticket.date_reported else '—' }}</td>
                 <td>
-                    <a href="{{ url_for('troubleshooting.handle_troubleshooting', id=ticket.id) }}">Edit</a>
+                    <a href="{{ url_for('troubleshooting.edit_ticket', id=ticket.id) }}">Edit</a>
                 </td>
             </tr>
             {% endfor %}

@@ -6,8 +6,8 @@ def create_app():
     app.config.from_object('config.Config')
 
     with app.app_context():
-        from . import routes, troubleshooting
+        from . import routes, management
         app.register_blueprint(routes.bp)
-        app.register_blueprint(troubleshooting.troubleshooting_bp)
+        app.register_blueprint(management.troubleshooting_bp)
 
     return app
