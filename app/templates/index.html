@@ -9,9 +9,11 @@
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
+        <ul>
         {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
+          <li><strong>{{ category }}:</strong> {{ message }}</li>
         {% endfor %}
+        </ul>
       {% endif %}
     {% endwith %}
 
@@ -25,7 +27,7 @@
         <tr>
             <td>{{ ticket.id }}</td>
             <td>{{ ticket.user_name }}</td>
-            <td>{{ ticket.device_id }}</td>
+            <td>{{ ticket.device_code }}</td>
             <td>{{ ticket.issue_description }}</td>
             <td>{{ ticket.date_reported }}</td>
             <td>{{ ticket.troubleshooting or '' }}</td>

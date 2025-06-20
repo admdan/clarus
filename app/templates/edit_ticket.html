@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+    <title>Edit Troubleshooting Ticket</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+          const originalType = document.getElementById('device_type').value;
+          const form = document.querySelector('form');
+          form.addEventListener('submit', function (e) {
+              const newType = document.getElementById('device_type').value;
+              if (originalType !== newType) {
+                  const confirmChange = confirm('Device type has changed. This will generate a new device code. Continue?');
+                  if (!confirmChange) {
+                      e.preventDefault();
+                  }
+              }
+          });
+      });
+    </script>
+</head>
+<body>
+    <h1>Edit Ticket #{{ ticket.id }}</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li class="flash {{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="post">
+        <label>User:</label>
+        <input type="text" name="user_name" value="{{ ticket.user_name }}">
+
+        <label>Device Code:</label>
+        <input type="text"  name="device_code" value="{{ device.device_code }}" readonly>
+
+        <label>Device Type:</label>
+        <select name="device_type" id="device_type">
+            {% for type in ['Desktop', 'Laptop', 'Printer', 'Router', 'Switch', 'Mobile', 'Tablet', 'Other'] %}
+                <option value="{{ type }}" {% if device.device_type == type %}selected{% endif %}>{{ type }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Issue:</label>
+        <textarea name="issue_description" > {{ ticket.issue_description }}</textarea>
+
+        <label>Troubleshooting</label><br>
+        <textarea name="troubleshooting">{{ ticket.troubleshooting or '' }}</textarea><br>
+
+        <label>Priority:</label>
+        <select name="priority">
+            {% for p in ['Low', 'Medium', 'High'] %}
+                <option value="{{ p }}" {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Status:</label>
+        <select name="status">
+            {% for s in ['Open', 'In Progress', 'Resolved'] %}
+                <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Category:</label>
+        <select name="category">
+            {% for c in ['Hardware', 'Software', 'Network', 'Security', 'Access Request', 'General Support'] %}
+                <option value="{{ c }}" {% if ticket.category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+
+        <label>Assigned to:</label>
+        <input type="text" name="assigned_to" value="{{ ticket.assigned_to or '' }}">
+
+        <label>Due date:</label>
+        <input type="date" name="due_date" value="{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '' }}">
+
+        <h3>Device Information</h3>
+
+        <label>Hostname:</label>
+        <input type="text" name="hostname" value="{{ device.hostname or '' }}">
+
+        <label>IPv4 Addresses:</label>
+        <input type="text" name="ipv4_addresses" value="{{ device.ipv4_addresses or '' }}">
+
+        <label>IPv6 Addresses:</label>
+        <input type="text" name="ipv6_addresses" value="{{ device.ipv6_addresses or '' }}">
+
+        <label>MAC Addresses:</label>
+        <input type="text" name="mac_addresses" value="{{ device.mac_addresses or '' }}">
+
+        <label>Network Adapters:</label>
+        <input type="text" name="network_adapters" value="{{ device.network_adapters or '' }}">
+
+        <label>OS Name:</label>
+        <input type="text" name="os_name" value="{{ device.os_name or '' }}">
+
+        <label>OS Version:</label>
+        <input type="text" name="os_version" value="{{ device.os_version or '' }}">
+
+        <label>Manufacturer:</label>
+        <input type="text" name="manufacturer" value="{{ device.manufacturer or '' }}">
+
+        <label>Device Model:</label>
+        <input type="text" name="device_model" value="{{ device.device_model or '' }}">
+
+        <label>Serial Number:</label>
+        <input type="text" name="serial_number" value="{{ device.serial_number or '' }}">
+
+        <input type="submit" value="Update">
+    </form>
+
+    <br>
+    <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>
