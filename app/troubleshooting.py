@@ -21,7 +21,11 @@ def troubleshooting_dashboard():
     query = request.args.get('query', '').strip()
     status_filter = request.args.get('status', 'All')
 
-    sql = "SELECT * FROM tickets WHERE 1=1"
+    sql = '''SELECT id, user_name, device_id, issue_description, troubleshooting,
+                    status, date_reported, due_date, device_type, priority,
+                    category, assigned_to
+             FROM tickets
+             WHERE 1=1'''
     params = []
 
     if query:
@@ -49,17 +53,36 @@ def troubleshooting_dashboard():
 def handle_troubleshooting(id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
     cursor.execute('''SELECT * FROM tickets 
                       WHERE id = %s''', (id,))
     ticket = cursor.fetchone()
 
     if request.method == 'POST':
+        device_type = request.form['device_type']
+        issue_description = request.form['issue_description']
         troubleshooting = request.form['troubleshooting']
+        priority = request.form['priority']
         status = request.form['status']
+        category = request.form['category']
+        assigned_to = request.form['assigned_to']
+        due_date = request.form['due_date']
+
+
+
         cursor.execute('''UPDATE tickets 
-                          SET troubleshooting = %s, status = %s, last_updated = %s
+                          SET device_type = %s,
+                              issue_description = %s,
+                              troubleshooting = %s,
+                              status = %s,
+                              priority= %s,
+                              category = %s,
+                              assigned_to = %s,
+                              due_date = %s,
+                              last_updated = %s
                           WHERE id = %s''',
-                       (troubleshooting, status, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), id))
+                       (device_type, issue_description, troubleshooting, status, priority, category,
+                        assigned_to, due_date, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), id))
         conn.commit()
         conn.close()
         flash("Troubleshooting updated successfully!", "success")
