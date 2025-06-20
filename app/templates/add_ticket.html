@@ -1,15 +1,35 @@
-
 <!doctype html>
 <html>
-<head><title>Add Ticket</title></head>
+<head>
+    <title>Add Ticket</title>
+</head>
 <body>
     <h1>Add New Ticket</h1>
+
     <form method="post">
-        Name: <input type="text" name="user_name"><br>
-        Device ID: <input type="text" name="device_id"><br>
-        Issue Description:<br><textarea name="issue_description"></textarea><br>
-        <input type="submit" value="Submit">
+        <h3>User Info</h3>
+        <label>Name:</label>
+        <input type="text" name="user_name" required><br>
+
+        <h3>Issue</h3>
+        <label>Issue Description:</label><br>
+        <textarea name="issue_description" required></textarea><br>
+
+        <h3>Device Type</h3>
+        <select name="device_type" required>
+            <option value="Desktop">Desktop</option>
+            <option value="Laptop">Laptop</option>
+            <option value="Mobile">Mobile</option>
+            <option value="Printer">Printer</option>
+            <option value="Router">Router</option>
+            <option value="Switch">Switch</option>
+            <option value="Tablet">Tablet</option>
+            <option value="Other">Other</option>
+        </select><br>
+
+        <input type="submit" value="Submit Ticket">
     </form>
+
     <a href="{{ url_for('routes.index') }}">Back to Tickets</a>
 </body>
 </html>
