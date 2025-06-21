@@ -64,8 +64,8 @@
                 <td>{{ ticket.priority or '—' }}</td>
                 <td>{{ ticket.category or '—' }}</td>
                 <td>{{ ticket.assigned_to or '—' }}</td>
-                <td>{{ ticket.issue_description }}</td>
-                <td>{{ ticket.troubleshooting or 'N/A' }}</td>
+                <td><div style="white-space: pre-wrap;">{{ ticket.issue_description }}</div></td>
+                <td><div style="white-space: pre-wrap;">{{ ticket.troubleshooting or 'N/A' }}</div></td>
                 <td class="{{ ticket.status|lower|replace(' ', '-') }}">{{ ticket.status }}</td>
                 <td>{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '—' }}</td>
                 <td>{{ ticket.date_reported.strftime('%Y-%m-%d') if ticket.date_reported else '—' }}</td>
