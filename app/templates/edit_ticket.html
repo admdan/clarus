@@ -47,10 +47,20 @@
         </select>
 
         <label>Issue:</label>
-        <textarea name="issue_description" > {{ ticket.issue_description }}</textarea>
+        <textarea name="issue_description"
+                  class="auto-resize"
+                  rows="4"
+                  style="width: 100%; resize: vertical; overflow-y: hidden;"
+                  placeholder="Enter issue description..."
+        >{{ ticket.issue_description }}</textarea>
 
         <label>Troubleshooting</label><br>
-        <textarea name="troubleshooting">{{ ticket.troubleshooting or '' }}</textarea><br>
+        <textarea name="troubleshooting"
+                  class="auto-resize"
+                  rows="4"
+                  style="width: 100%; resize: vertical; overflow-y: hidden;"
+                  placeholder="Enter troubleshooting steps..."
+        >{{ ticket.troubleshooting or '' }}</textarea><br>
 
         <label>Priority:</label>
         <select name="priority">
@@ -116,5 +126,19 @@
 
     <br>
     <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">Back to Dashboard</a>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const textareas = document.querySelectorAll('.auto-resize');
+        textareas.forEach(textarea => {
+            const resize = () => {
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+            };
+            resize();
+            textarea.addEventListener('input', resize);
+        });
+    });
+    </script>
 </body>
 </html>
