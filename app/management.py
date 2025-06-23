@@ -1,11 +1,14 @@
 # app/management.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required
+
 from .db import get_db_connection
 from datetime import datetime
 
 troubleshooting_bp = Blueprint('troubleshooting', __name__, url_prefix='/troubleshooting')
 
 @troubleshooting_bp.route('/', methods=['GET'])
+@login_required
 def troubleshooting_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
