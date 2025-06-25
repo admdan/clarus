@@ -1,6 +1,7 @@
 from .db import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from itsdangerous import URLSafeTimedSerializer
 
 class User(UserMixin):
     def __init__(self, id, username, email):
@@ -75,3 +76,30 @@ def get_user_by_username(username):
     if user:
         return User(id=user['id'], username=user['username'], email=user['email'])
     return None
+
+def get_user_by_email(email):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('''SELECT *
+                      FROM users 
+                      WHERE email = %s''',
+                   (email,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
+
+# Used for generating reset token for password reset
+def generate_reset_token(email, secret_key, salt):
+    serializer = URLSafeTimedSerializer(secret_key)
+    return serializer.dumps(email, salt=salt)
+
+
+# Used for verification of the reset token
+def verify_reset_token(token, secret_key, salt, expiration=3600):
+    serializer = URLSafeTimedSerializer(secret_key)
+    try:
+        email = serializer.loads(token, salt=salt, max_age=expiration)
+    except:
+        return None
+    return email
