@@ -2,6 +2,9 @@
 <html>
 <head>
     <title>Troubleshooting Dashboard</title>
+    <!-- <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+         <meta http-equiv="Pragma" content="no-cache">
+         <meta http-equiv="Expires" content="0"> -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -41,11 +44,16 @@
             <tr>
                 <th>ID</th>
                 <th>User</th>
-                <th>Device</th>
+                <th>Device ID</th>
+                <th>Device Type</th>
+                <th>Priority</th>
+                <th>Category</th>
+                <th>Assigned To</th>
                 <th>Issue</th>
                 <th>Troubleshooting</th>
                 <th>Status</th>
-                <th>Date</th>
+                <th>Due Date</th>
+                <th>Date Reported  </th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -54,18 +62,25 @@
             <tr>
                 <td>{{ ticket.id }}</td>
                 <td>{{ ticket.user_name }}</td>
-                <td>{{ ticket.device_id }}</td>
-                <td>{{ ticket.issue_description }}</td>
-                <td>{{ ticket.troubleshooting or 'N/A' }}</td>
+                <td>{{ ticket.device_code }}</td>
+                <td>{{ ticket.device_type or '-'}}</td>
+                <td>{{ ticket.priority or '—' }}</td>
+                <td>{{ ticket.category or '—' }}</td>
+                <td>{{ ticket.assigned_to or '—' }}</td>
+                <td><div style="white-space: pre-wrap;">{{ ticket.issue_description }}</div></td>
+                <td><div style="white-space: pre-wrap;">{{ ticket.troubleshooting or 'N/A' }}</div></td>
                 <td class="{{ ticket.status|lower|replace(' ', '-') }}">{{ ticket.status }}</td>
-                <td>{{ ticket.date_reported }}</td>
-                <td><a href="{{ url_for('troubleshooting.handle_troubleshooting', id=ticket.id) }}">Edit</a></td>
+                <td>{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '—' }}</td>
+                <td>{{ ticket.date_reported.strftime('%Y-%m-%d') if ticket.date_reported else '—' }}</td>
+                <td>
+                    <a href="{{ url_for('troubleshooting.edit_ticket', id=ticket.id) }}">Edit</a>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <br>
-    <a href="{{ url_for('routes.index') }}">Back to Home</a>
+    <a href="{{ url_for('routes.logout') }}">Log out</a>
 </body>
 </html>

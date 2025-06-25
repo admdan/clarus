@@ -1,42 +1,114 @@
-<!doctype html>
-<html>
-<head>
-    <title>IT Support Tickets</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>IT Support Tickets</h1>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login/Signup Form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}" />
+    <link
+      href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css"
+      rel="stylesheet"
+    />
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash {{ category }}">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    {% if current_user.is_authenticated %}
+      <script>
+        window.location.href = "{{ url_for('troubleshooting.troubleshooting_dashboard') }}";
+      </script>
+    {% endif %}
 
-    <a href="{{ url_for('routes.add_ticket') }}">Add New Ticket</a>
-    <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">Go to Troubleshooting Dashboard</a>
-    <table>
-        <tr>
-            <th>ID</th><th>User</th><th>Device</th><th>Issue</th><th>Date</th><th>Troubleshooting</th><th>Status</th><th>Actions</th>
-        </tr>
-        {% for ticket in tickets %}
-        <tr>
-            <td>{{ ticket.id }}</td>
-            <td>{{ ticket.user_name }}</td>
-            <td>{{ ticket.device_id }}</td>
-            <td>{{ ticket.issue_description }}</td>
-            <td>{{ ticket.date_reported }}</td>
-            <td>{{ ticket.troubleshooting or '' }}</td>
-            <td>{{ ticket.status }}</td>
-            <td>
-                <form action="{{ url_for('routes.delete_ticket', id=ticket.id) }}" method="post" style="display:inline">
-                    <input type="submit" value="Delete" onclick="return confirm('Are you sure?')">
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-</body>
+  </head>
+  <body>
+    <div class="container">
+      <div class="form-box login">
+        <form method="POST" action="{{ url_for('routes.login') }}">
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+
+          <h1>Login</h1>
+          <div class="input-box">
+            <input type="text" name="username" placeholder="Username" required />
+            <i class="bx bxs-user"></i>
+          </div>
+          <div class="input-box">
+            <input type="password" name="password" placeholder="Password" required />
+            <i class="bx bxs-lock-alt"></i>
+          </div>
+          <div class="forgot-link">
+            <a href="#">Forgot Password?</a>
+          </div>
+          <button type="submit" class="btn">Login</button>
+          <p>or login with social platforms</p>
+          <div class="social-icons">
+            <a href="#"><i class="bx bxl-google"></i></a>
+            <a href="#"><i class="bx bxl-facebook"></i></a>
+            <a href="#"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
+          </div>
+        </form>
+      </div>
+
+      <div class="form-box register">
+        <form method="POST" action="{{ url_for('routes.login_register') }}">
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+
+          <h1>Registration</h1>
+          <div class="input-box">
+            <input type="text" name="username" placeholder="Username" required />
+            <i class="bx bxs-user"></i>
+          </div>
+          <div class="input-box">
+            <input type="email" name="email" placeholder="Email" required />
+            <i class="bx bxs-envelope"></i>
+          </div>
+          <div class="input-box">
+            <input type="password" name="password" placeholder="Password" required />
+            <i class="bx bxs-lock-alt"></i>
+          </div>
+          <button type="submit" class="btn">Register</button>
+          <p>or register with social platforms</p>
+          <div class="social-icons">
+            <a href="#"><i class="bx bxl-google"></i></a>
+            <a href="#"><i class="bx bxl-facebook"></i></a>
+            <a href="#"><i class="bx bxl-github"></i></a>
+            <a href="#"><i class="bx bxl-linkedin"></i></a>
+          </div>
+        </form>
+      </div>
+
+      <div class="toggle-box">
+        <div class="toggle-panel toggle-left">
+          <h1>Hello, Welcome!</h1>
+          <p>Don't have an account?</p>
+          <button class="btn register-btn">Register</button>
+        </div>
+
+        <div class="toggle-panel toggle-right">
+          <h1>Welcome Back!</h1>
+          <p>Already have an account?</p>
+          <button class="btn login-btn">Login</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script>
+      window.addEventListener('pageshow', function (event) {
+        if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
+          window.location.reload();
+        }
+      });
+    </script>
+
+  </body>
 </html>
