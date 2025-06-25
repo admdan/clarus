@@ -28,5 +28,4 @@ def create_app():
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         return response
-
     return app

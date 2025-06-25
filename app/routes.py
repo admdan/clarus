@@ -1,8 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, make_response, flash
+from flask import flash, Blueprint, render_template, request, redirect, url_for, make_response, current_app
 from flask_login import login_user, logout_user, current_user, login_required
-from .models import get_user_by_username, verify_user
+from .models import get_user_by_username, verify_user, verify_reset_token, generate_reset_token, get_user_by_email
 from .db import get_db_connection
 from datetime import datetime
+from werkzeug.security import generate_password_hash
+import smtplib
+from email.mime.text import MIMEText
 
 bp = Blueprint('routes', __name__)
 
@@ -69,6 +72,83 @@ def logout():
     logout_user()
     flash("You've been logged out.", "success")
     return redirect(url_for('routes.login_register'))
+
+@bp.route('/forgot-password', methods=['GET','POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form['email'].strip()
+
+        # Lookup user by email
+        user = get_user_by_email(email)
+        if user:
+            token = generate_reset_token(email, current_app.config['SECRET_KEY'], current_app.config['SALT'])
+            reset_link = url_for('routes.reset_password_request', token=token, _external=True)
+
+            #Email content
+            subject = "Clarus - Password Reset Request"
+            body = f"""
+Hello {user['username']},
+
+We received a request to reset your Clarus account password.
+
+This link is valid only for 5 minutes. Click the link below to reset your password:
+{reset_link}
+
+If you did not request this, you can safely ignore this email.
+
+- Clarus Support
+"""
+            msg = MIMEText(body, 'plain', 'utf-8')
+            msg['Subject'] = subject
+            msg['From'] = current_app.config['MAIL_DEFAULT_SENDER']
+            msg['To'] = email
+
+            # Send email via SMTP
+            try:
+                with smtplib.SMTP_SSL(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as smtp:
+                    smtp.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
+                    smtp.send_message(msg)
+            except Exception as e:
+                print(f"Error sending email: {e}")
+                flash("Error sending reset email. Please try again later.", "error")
+
+        # Always flash the same message for security
+        flash("If your email exists in our system, a reset link has been sent.", "info")
+
+        return redirect(url_for('routes.login_register'))
+    return render_template('forgot_password.html')
+
+@bp.route('/reset-password/<token>', methods=['GET','POST'])
+def reset_password(token):
+    email = verify_reset_token(token, app.config['SECRET_KEY'], app.config['SALT'], expiration=300)
+
+    if not email:
+        flash("The reset link is invalid or has expired.", "error")
+        return redirect(url_for('routes.forgot_password'))
+
+    if request.method == 'POST':
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+
+        if password != confirm_password:
+            flash("Passwords don't match. Please try again.", "error")
+            return redirect(request.url)
+
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('''UPDATE users 
+                          SET password_hash = %s 
+                          WHERE email = %s''',
+                       (hashed_password,email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash("Password updated successfully. Please login to continue.", "success")
+        return redirect(url_for('routes.login_register'))
+    return render_template('reset_password.html', token=token)
 
 @bp.route('/add', methods=('GET', 'POST'))
 def add_ticket():
