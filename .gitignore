@@ -109,4 +109,3 @@ uv.lock
 # Cursor AI editor
 .cursorignore
 .cursorindexingignore
-config.py
