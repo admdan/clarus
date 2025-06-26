@@ -88,19 +88,134 @@ form{ width: 100%; }
   top: 50%;
   transform: translateY(-50%);
   font-size: 20px;
-    }
+}
 
-.forgot-link{ margin: -15px 0 15px; }
-    .forgot-link a{
-        font-size: 14.5px;
-        color: #333;
+/*.forgot-link{ margin: 0; }*/
+
+/*.forgot-link a{
+    font-size: 14.5px;
+    color: #333;
+    text-decoration: none;
+    /*line-height: 1; */ /*
     }
+/* margin: -15px 0 15px; */
+
+
+.options-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0 25px; /* previously 15px 0 20px */
+    padding: 0 3px;/* padding: 0 2px; */
+    font-size: 14.5px;
+    flex-wrap: wrap;
+    gap: 8px;
+    line-height: 1;
+}
+
+.remember-box label,
+.forgot-link a {
+    line-height: 1;
+    position: relative;
+    top: 1px; /* fine-tune this if needed */
+}
+
+/* Remember Me box */
+.remember-box {
+  /*display: flex;
+  align-items: baseline;
+  flex-shrink: 1; */
+    justify-content: flex-start;
+}
+.remember-box input[type="checkbox"] {
+    margin-right: 6px; /* adjust spacing from checkbox to label */
+    width: 16px;
+    height: 16px;
+    accent-color: #378552;
+    cursor: pointer;
+    position: relative;
+    top: 0px; /* was 1px before */
+}
+
+.remember-box,
+.forgot-link {
+    display: flex;
+    align-items: center; /* better than baseline for visual balance */
+    flex: 1;
+}
+.forgot-link {
+  /*display: flex;
+  align-items: baseline;
+  flex-shrink: 1;*/
+    justify-content: flex-end;
+}
+
+.forgot-link a {
+    color: #333;
+    text-decoration: none;
+    font-size: 14.5px;
+}
+
+.forgot-link div{
+    display: flex;
+}
+
+.remember-box label{
+    display: flex;
+}
+
+/*
+.options-row .forgot-link a {
+    /* margin: 0; */
+    /* padding: 0; */
+    /* display: flex; */
+    /* align-items: center; */
+    /* line-height: 1; /* added */
+    /* color: #333;
+    text-decoration: none;
+    /* height: 100%; */
+    /* margin-top: 1px;
+    padding-top: 1px; /* forces vertical alignment */ /*
+} */
+ /*
+.options-row .remember-box {
+    display: flex;
+    align-items: center;
+    line-height: 1; /* added to keep tight vertical alignment*/ /*
+}*/
+/*
+.options-row .remember-box input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    accent-color: #378552;
+    cursor: pointer;
+    transform: translate(1px); /* fine tune */ /*
+} */
+
+/*
+.remember-box, .forgot-link {
+    display: flex;
+    align-items: center;
+    /*margin-bottom: 15px;
+    font-size: 14.5px;
+    color: #333;*/ /*
+} */
+
+/*
+.remember-box input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    accent-color: #378552; /* matcha green */ /*
+    cursor: pointer;
+}*/
 
 .btn{
     width: 100%;
     height: 48px;
     /* background: #7494ec; THIS IS DEFAULT SOFT BLUE*/
-    background: #378552;;
+    background: #378552; /* colour of the login/register (not toggle buttons) */
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, .1);
     border: none;
@@ -108,7 +223,7 @@ form{ width: 100%; }
     font-size: 16px;
     color: #fff;
     font-weight: 600;
-}
+} /* this is the button for register and login (both toggle and login/register buttons) */
 
 .social-icons{
     display: flex;
@@ -143,7 +258,7 @@ form{ width: 100%; }
     border-radius: 150px;
     z-index: 2;
     transition: 1.8s ease-in-out;
-   }
+   } /* this is the toggle box that expands and contracts */
 
         .container.active .toggle-box::before{ left: 50%; }
 
@@ -158,7 +273,7 @@ form{ width: 100%; }
     align-items: center;
     z-index: 2;
     transition: .6s ease-in-out;
-}
+} /* this is the welcome message that slides into the unknown */
 
     .toggle-panel.toggle-left{
         left: 0;
@@ -184,9 +299,9 @@ form{ width: 100%; }
         width: 160px;
         height: 46px;
         background: transparent;
-        border: 2px solid #fff;
+        border: 2px solid #fff; /* can change other color */
         box-shadow: none;
-    }
+    } /* this is the outline of the toggle buttons */
 
 @media screen and (max-width: 650px){
     .container{ height: calc(100vh - 40px); }
