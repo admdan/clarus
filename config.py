@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()
 
@@ -15,3 +16,4 @@ class Config:
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
     MAIL_PORT = int(os.getenv("MAIL_PORT", 465))
     MAIL_SERVER = os.getenv("MAIL_SERVER")
+    REMEMBER_COOKIE_DURATION = timedelta(days=7)

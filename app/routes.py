@@ -56,11 +56,17 @@ def register():
 def login():
     username = request.form['username']
     password = request.form['password']
+    remember = request.form.get('remember', False) == 'on' #true if checked, false otherwise
 
     if verify_user(username,password):
         user = get_user_by_username(username)
-        login_user(user)
-        flash("Login successful", "success")
+        login_user(user, remember=remember)
+
+        if remember:
+            flash("Login successful. Your session will be remembered for 7 days.", "success")
+        else:
+            flash("Login successful. You will be logged out when the browser is closed.","success")
+
         return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
     else:
         flash("Invalid username or password.", "error")
@@ -82,7 +88,7 @@ def forgot_password():
         user = get_user_by_email(email)
         if user:
             token = generate_reset_token(email, current_app.config['SECRET_KEY'], current_app.config['SALT'])
-            reset_link = url_for('routes.reset_password_request', token=token, _external=True)
+            reset_link = url_for('routes.reset_password', token=token, _external=True)
 
             #Email content
             subject = "Clarus - Password Reset Request"
@@ -105,7 +111,9 @@ If you did not request this, you can safely ignore this email.
 
             # Send email via SMTP
             try:
-                with smtplib.SMTP_SSL(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as smtp:
+                with smtplib.SMTP(current_app.config['MAIL_SERVER'], current_app.config['MAIL_PORT']) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls()
                     smtp.login(current_app.config['MAIL_USERNAME'], current_app.config['MAIL_PASSWORD'])
                     smtp.send_message(msg)
             except Exception as e:
@@ -120,7 +128,7 @@ If you did not request this, you can safely ignore this email.
 
 @bp.route('/reset-password/<token>', methods=['GET','POST'])
 def reset_password(token):
-    email = verify_reset_token(token, app.config['SECRET_KEY'], app.config['SALT'], expiration=300)
+    email = verify_reset_token(token, current_app.config['SECRET_KEY'], current_app.config['SALT'], expiration=300)
 
     if not email:
         flash("The reset link is invalid or has expired.", "error")
