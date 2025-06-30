@@ -1,7 +1,7 @@
 # app/management.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
-
+from app.routes import roles_required
 from .db import get_db_connection
 from datetime import datetime
 
@@ -9,6 +9,7 @@ troubleshooting_bp = Blueprint('troubleshooting', __name__, url_prefix='/trouble
 
 @troubleshooting_bp.route('/', methods=['GET'])
 @login_required
+@roles_required('admin', 'support')
 def troubleshooting_dashboard():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
