@@ -369,3 +369,21 @@ form{ width: 100%; }
   background-color: #f8d7da;
   color: #721c24;
 }
+
+.flash.register_error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+.flash.register_success {
+  background-color: #d4edda;
+  color: #155724;
+}
+.flash.login_error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+.flash.logout {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+

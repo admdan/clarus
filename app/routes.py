@@ -1,6 +1,7 @@
-from flask import flash, Blueprint, render_template, request, redirect, url_for, make_response, current_app
+from flask import flash, Blueprint, render_template, request, redirect, url_for, make_response, current_app, abort
 from flask_login import login_user, logout_user, current_user, login_required
-from .models import get_user_by_username, verify_user, verify_reset_token, generate_reset_token, get_user_by_email
+from functools import wraps
+from .models import get_user_by_username, verify_user, verify_reset_token, generate_reset_token, get_user_by_email, insert_user
 from .db import get_db_connection
 from datetime import datetime
 from werkzeug.security import generate_password_hash
@@ -9,11 +10,22 @@ from email.mime.text import MIMEText
 
 bp = Blueprint('routes', __name__)
 
+def roles_required(*roles):
+    def wrapper(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not current_user.is_authenticated or getattr(current_user, 'role', None) not in roles:
+                abort(403)  # Forbidden
+            return f(*args, **kwargs)
+        return decorated_function
+    return wrapper
+
+
 @bp.route('/', methods=['GET', 'POST'])
 def login_register():
     # Force server-side redirection every time
     if current_user.is_authenticated:
-        return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
+        return redirect(url_for('routes.portal'))
     return render_template('index.html') # Animated login/register page
 
     # Disable caching explicitly at this route too
@@ -30,7 +42,7 @@ def register():
     password = request.form['password']
 
     if not username or not email or not password:
-        flash("All fields are required.", "error")
+        flash("All fields are required.", "register_error")
         return redirect(url_for('routes.login_register'))
 
     # Check if user exists
@@ -40,16 +52,16 @@ def register():
     existing_user = cursor.fetchone()
 
     if existing_user:
-        flash("User already exists. Try a different username or email.", "error")
+        flash("User already exists. Try a different username or email.", "register_error")
         cursor.close()
         conn.close()
         return redirect(url_for('routes.login_register'))
 
     # Insert new user
     from .models import insert_user
-    insert_user(username, email, password)
+    insert_user(username, email, password, )
 
-    flash("Registration successful. Please login!", "success")
+    flash("Registration successful. Please login!", "register_success")
     return redirect(url_for('routes.login_register'))
 
 @bp.route('/login', methods=['POST'])
@@ -63,20 +75,20 @@ def login():
         login_user(user, remember=remember)
 
         if remember:
-            flash("Login successful. Your session will be remembered for 7 days.", "success")
+            flash("Login successful. Your session will be remembered for 7 days.", "login_success")
         else:
-            flash("Login successful. You will be logged out when the browser is closed.","success")
+            flash("Login successful. You will be logged out when the browser is closed.","login_success")
 
-        return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
+        return redirect(url_for('routes.portal'))
     else:
-        flash("Invalid username or password.", "error")
+        flash("Invalid username or password.", "login_error")
         return redirect(url_for('routes.login_register'))
 
 @bp.route('/logout')
 @login_required
 def logout():
     logout_user()
-    flash("You've been logged out.", "success")
+    flash("You've been logged out.", "logout")
     return redirect(url_for('routes.login_register'))
 
 @bp.route('/forgot-password', methods=['GET','POST'])
@@ -158,7 +170,45 @@ def reset_password(token):
         return redirect(url_for('routes.login_register'))
     return render_template('reset_password.html', token=token)
 
+@bp.route('/portal')
+@login_required
+def portal():
+    modules = []
+
+    role = getattr(current_user, 'role', 'basic')
+
+    if role in ['admin', 'support']:
+        modules.append('troubleshooting')
+    if role in ['admin', 'hr', 'support']:
+        modules.append('inventory')
+    if role in ['admin', 'hr', 'support']:
+        modules.append('eip')  # Only these roles can see EIP
+
+    modules.append('profile')  # Everyone can see their own profile
+
+    welcome_message = f"Welcome back, {current_user.username}!"
+
+    return render_template('portal.html', modules=modules, welcome_message=welcome_message)
+
+@bp.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html')
+
+@bp.route('/eip')
+@login_required
+@roles_required('admin', 'hr', 'support')
+def eip():
+    return render_template('eip.html')  # Create this template later
+
+@bp.route('/aims')
+@login_required
+@roles_required('admin', 'hr', 'support')
+def aims():
+    return render_template('aims.html')  # Create this later too
+
 @bp.route('/add', methods=('GET', 'POST'))
+@login_required
 def add_ticket():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -219,6 +269,7 @@ def add_ticket():
     return render_template('add_ticket.html')
 
 @bp.route('/delete/<int:id>', methods=('POST',))
+@login_required
 def delete_ticket(id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -226,7 +277,7 @@ def delete_ticket(id):
     conn.commit()
     conn.close()
     flash('Ticket deleted successfully!', 'success')
-    return redirect(url_for('routes.index'))
+    return redirect(url_for('routes.portal'))
 
 @bp.route('/confirmation')
 def confirmation():

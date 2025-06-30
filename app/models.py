@@ -4,24 +4,27 @@ from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer
 
 class User(UserMixin):
-    def __init__(self, id, username, email):
+    def __init__(self, id, username, email, role='basic'):
         self.id = id #Flask-Login uses this as user_id
         self.username = username
         self.email = email
+        self.role = role
 
 # Used during registration to insert new user into the database
-def insert_user(username, email, password):
+def insert_user(username, email, password, role='basic'):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     hashed_pw = generate_password_hash(password, method='pbkdf2:sha256')
 
     try:
         cursor.execute('''
-                       INSERT INTO users (username, email, password_hash)
-                           VALUES (%s, %s, %s)''',
-                       (username, email, hashed_pw)
+                       INSERT INTO users (username, email, password_hash, role)
+                           VALUES (%s, %s, %s, %s)''',
+                       (username, email, hashed_pw, role)
         )
         conn.commit()
+    except Exception as e:
+        print(f"[ERROR] Failed to insert user: {e}") #Debug line
     finally:
         cursor.close()
         conn.close()
@@ -58,7 +61,7 @@ def get_user(user_id):
     conn.close()
 
     if user:
-        return User(id=user['id'], username=user['username'], email=user['email'])
+        return User(id=user['id'], username=user['username'], email=user['email'], role=user.get('role', 'basic'))
     return None
 
 # Used for login authentication (typically using username + password)
@@ -74,7 +77,7 @@ def get_user_by_username(username):
     conn.close()
 
     if user:
-        return User(id=user['id'], username=user['username'], email=user['email'])
+        return User(id=user['id'], username=user['username'], email=user['email'], role=user.get('role', 'basic'))
     return None
 
 def get_user_by_email(email):
