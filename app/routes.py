@@ -199,13 +199,13 @@ def profile():
 @login_required
 @roles_required('admin', 'hr', 'support')
 def eip():
-    return render_template('eip.html')  # Create this template later
+    return render_template('eip.html')
 
 @bp.route('/aims')
 @login_required
 @roles_required('admin', 'hr', 'support')
 def aims():
-    return render_template('aims.html')  # Create this later too
+    return redirect(url_for('asset.inventory_dashboard'))
 
 @bp.route('/add', methods=('GET', 'POST'))
 @login_required
