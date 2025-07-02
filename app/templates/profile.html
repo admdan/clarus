@@ -12,7 +12,7 @@
             <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
         </div>
 
-        <div class="card shadow-sm">
+        <div class="card shadow-sm mb-4">
             <div class="card-body">
                 <h5 class="card-title mb-3">Account Details</h5>
                 <ul class="list-group list-group-flush">
@@ -20,6 +20,58 @@
                     <li class="list-group-item"><strong>Email:</strong> {{ current_user.email }}</li>
                     <li class="list-group-item"><strong>Role:</strong> {{ current_user.role }}</li>
                 </ul>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Assigned Devices</h5>
+                {% if assigned_assets %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Device Type</th>
+                                <th>Serial Number</th>
+                                <th>Status</th>
+                                <th>Model</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in assigned_assets %}
+                                <tr>
+                                    <td>{{ asset.device_type }}</td>
+                                    <td>{{ asset.serial_number }}</td>
+                                    <td>{{ asset.status }}</td>
+                                    <td>{{ asset.model }}</td>
+                                    <td>{{ asset.remarks or '-' }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info"
+                                                type="button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#extraInfo{{ loop.index }}"
+                                                aria-expanded="false"
+                                                aria-controls="extraInfo{{ loop.index }}">
+                                            View
+                                        </button>
+                                    </td>
+                                </tr>
+                            <tr class="collapse" id="extraInfo{{ loop.index }}">
+                                <td colspan="6">
+                                    <div class="p-3 border rounded bg-light">
+                                        <p><strong>Manufacturer:</strong> {{ asset.manufacturer or 'N/A' }}</p>
+                                        <p><strong>Warranty End:</strong> {{ asset.warranty_end or 'N/A' }}</p>
+                                        <p><strong>Last Updated:</strong> {{ asset.last_updated or 'N/A' }}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">No devices assigned to you.</p>
+                {% endif %}
             </div>
         </div>
     </div>
