@@ -3,6 +3,7 @@ from .db import get_db_connection
 from flask_login import LoginManager
 from .models import get_user
 from .asset import asset_bp
+from .profile import profile_bp
 
 login_manager=LoginManager()
 
@@ -23,6 +24,7 @@ def create_app():
         app.register_blueprint(routes.bp)
         app.register_blueprint(management.troubleshooting_bp)
         app.register_blueprint(asset_bp)
+        app.register_blueprint(profile_bp)
 
     @app.after_request
     def add_cache_control_headers(response):

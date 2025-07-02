@@ -190,11 +190,6 @@ def portal():
 
     return render_template('portal.html', modules=modules, welcome_message=welcome_message)
 
-@bp.route('/profile')
-@login_required
-def profile():
-    return render_template('profile.html')
-
 @bp.route('/eip')
 @login_required
 @roles_required('admin', 'hr', 'support')
