@@ -5,7 +5,7 @@ from .db import get_db_connection
 from .routes import roles_required
 from datetime import datetime
 from io import StringIO
-from weasyprint import HTML
+from weasyprint import HTML, CSS
 import csv
 
 asset_bp = Blueprint('asset', __name__, url_prefix='/assets')
@@ -312,4 +312,46 @@ def export_pdf(asset_id):
     response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
 
+@asset_bp.route('/export_pdf')
+@login_required
+@roles_required('admin', 'hr', 'support')
+def export_pdf_all():
+    device_type = request.args.get('device_type')
+    status = request.args.get('status')
+    search = request.args.get('search')
+    filename = request.args.get('filename', 'asset_inventory.pdf')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = '''
+        SELECT a.*, u.username AS assigned_user
+        FROM assets a
+        LEFT JOIN users u ON a.assigned_to = u.id
+        WHERE 1 = 1
+    '''
+    values = []
+
+    if device_type:
+        query += ' AND a.device_type = %s'
+        values.append(device_type)
+    if status:
+        query += ' AND a.status = %s'
+        values.append(status)
+    if search:
+        query += ' AND (a.serial_number LIKE %s OR u.username LIKE %s)'
+        values.extend([f"%{search}%", f"%{search}%"])
+
+    cursor.execute(query, tuple(values))
+    assets = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    html = render_template('asset_list.html', assets=assets)
+    pdf = HTML(string=html).write_pdf(stylesheets=[CSS(string='@page { size: A4; margin: 1cm; }')])
+
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
 

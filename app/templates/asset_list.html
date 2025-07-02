@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Assets PDF Export</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; padding: 10px; }
+        h2 { text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; page-break-inside: auto; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f0f0f0; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<h2>Asset Inventory Report</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Device Type</th>
+            <th>Serial</th>
+            <th>Condition</th>
+            <th>Status</th>
+            <th>Assigned To</th>
+            <th>Model</th>
+            <th>Purchase Date</th>
+            <th>Remarks</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for asset in assets %}
+        <tr>
+            <td>{{ asset.device_type }}</td>
+            <td>{{ asset.serial_number }}</td>
+            <td>{{ asset.condition }}</td>
+            <td>{{ asset.status }}</td>
+            <td>{{ asset.assigned_user or 'Unassigned' }}</td>
+            <td>{{ asset.model }}</td>
+            <td>{{ asset.purchase_date }}</td>
+            <td>{{ asset.remarks or '-' }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<div class="footer">Page {{ page_number }}</div>
+</body>
+</html>
