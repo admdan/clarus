@@ -58,7 +58,7 @@
 
     <div class="d-flex justify-content-between mb-3">
         <a href="{{ url_for('asset.add_asset') }}" class="btn btn-success">Add New Asset</a>
-        <a href="#" class="btn btn-outline-primary btn-export-csv">Export as CSV</a>
+        <button type="button" class="btn btn-outline-dark" id="exportBtn">Export</button>
     </div>
 
     <table class="table table-bordered table-striped">
@@ -128,18 +128,27 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Filename Modal -->
-<div class="modal fade" id="csvFilenameModal" tabindex="-1" aria-labelledby="csvFilenameModalLabel" aria-hidden="true">
+<!-- Unified Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form id="csvExportForm">
+      <form id="unifiedExportForm">
         <div class="modal-header">
-          <h5 class="modal-title" id="csvFilenameModalLabel">Export CSV</h5>
+          <h5 class="modal-title" id="exportModalLabel">Export Assets</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <label for="csvFilename" class="form-label">Enter filename (without .csv):</label>
-          <input type="text" class="form-control" id="csvFilename" placeholder="asset_inventory">
+          <div class="mb-3">
+            <label class="form-label">Filename (without extension):</label>
+            <input type="text" class="form-control" id="exportFilename" placeholder="asset_inventory_2025-07-02">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Export Format:</label>
+            <select class="form-select" id="exportFormat" required>
+              <option value="csv">CSV</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Download</button>
@@ -148,21 +157,28 @@
     </div>
   </div>
 </div>
-
 <script>
-document.querySelector('.btn-export-csv').addEventListener('click', function (e) {
-  e.preventDefault();
-  var modal = new bootstrap.Modal(document.getElementById('csvFilenameModal'));
+document.getElementById('exportBtn').addEventListener('click', function () {
+  const modal = new bootstrap.Modal(document.getElementById('exportModal'));
   modal.show();
 });
 
-document.getElementById('csvExportForm').addEventListener('submit', function (e) {
+document.getElementById('unifiedExportForm').addEventListener('submit', function (e) {
   e.preventDefault();
-  const filename = document.getElementById('csvFilename').value.trim() || 'asset_inventory';
-  const baseUrl = "{{ url_for('asset.export_csv') }}";
+  const filenameInput = document.getElementById('exportFilename').value.trim();
+  const filename = filenameInput || 'asset_inventory_2025-07-02';
+  const format = document.getElementById('exportFormat').value;
   const params = new URLSearchParams({{ base_query|tojson }});
-  params.set('filename', filename + '.csv');
-  window.location.href = `${baseUrl}?${params.toString()}`;
+
+  if (format === 'csv') {
+    const url = "{{ url_for('asset.export_csv') }}";
+    params.set('filename', filename + '.csv');
+    window.location.href = `${url}?${params.toString()}`;
+  } else if (format === 'pdf') {
+    const url = "{{ url_for('asset.export_pdf_all') }}";
+    params.set('filename', filename + '.pdf');
+    window.open(`${url}?${params.toString()}`, '_blank');
+  }
 });
 </script>
 
