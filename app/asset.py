@@ -6,7 +6,7 @@ from .routes import roles_required
 from datetime import datetime
 from io import StringIO
 from weasyprint import HTML, CSS
-import csv
+import csv, json
 
 asset_bp = Blueprint('asset', __name__, url_prefix='/assets')
 
@@ -276,6 +276,10 @@ def export_csv():
     output = si.getvalue()
     si.close()
 
+    asset_ids = [a['asset_id'] for a in assets]
+    filters = {'device_type': device_type, 'status': status, 'search': search}
+    log_export_event(filename, "CSV", is_single_asset=False, filters_applied=filters, asset_ids=asset_ids)
+
     return Response(
         output,
         mimetype="text/csv",
@@ -310,6 +314,9 @@ def export_pdf(asset_id):
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+
+    log_export_event(filename, "PDF", is_single_asset=True, asset_ids=[asset_id])
+
     return response
 
 @asset_bp.route('/export_pdf')
@@ -353,5 +360,57 @@ def export_pdf_all():
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+
+    asset_ids = [a['asset_id'] for a in assets]
+    filters = {'device_type': device_type, 'status': status, 'search': search}
+    log_export_event(filename, "PDF", is_single_asset=False, filters_applied=filters, asset_ids=asset_ids)
+
     return response
+
+def log_export_event(filename, export_type, is_single_asset=False, filters_applied=None, asset_ids=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    filters_json = json.dumps(filters_applied or {})
+    asset_id_str = json.dumps(asset_ids) if asset_ids else None
+    asset_count = len(asset_ids) if asset_ids else 0
+
+    cursor.execute('''
+        INSERT INTO export_logs (filename, user_id, export_type, is_single_asset, filters_applied,
+                                 exported_asset_ids, num_assets, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+    ''', (filename, current_user.id, export_type, is_single_asset, filters_json,
+          asset_id_str, asset_count))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+@asset_bp.route('/export_logs')
+@login_required
+@roles_required('admin')
+def view_export_logs():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('''
+        SELECT el.*, u.username
+        FROM export_logs el
+        JOIN users u ON el.user_id = u.id
+        ORDER BY el.timestamp DESC
+    ''')
+    logs = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    for log in logs:
+        try:
+            log['filters'] = json.loads(log['filters_applied']) if log['filters_applied'] else {}
+        except json.JSONDecodeError:
+            log['filters'] = {}
+
+        try:
+            log['asset_ids'] = json.loads(log['exported_asset_ids']) if log['exported_asset_ids'] else []
+        except json.JSONDecodeError:
+            log['asset_ids'] = []
+
+    return render_template('export_logs.html', logs=logs)
+
 
