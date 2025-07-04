@@ -2,6 +2,7 @@ from .db import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 from itsdangerous import URLSafeTimedSerializer
+from .profile_utils import create_empty_profile_if_missing
 
 class User(UserMixin):
     def __init__(self, id, username, email, role='basic'):
@@ -23,6 +24,12 @@ def insert_user(username, email, password, role='basic'):
                        (username, email, hashed_pw, role)
         )
         conn.commit()
+
+        # Get the new user ID
+        new_user_id = cursor.lastrowid
+
+        # Create their empty profile records
+        create_empty_profile_if_missing(new_user_id)
     except Exception as e:
         print(f"[ERROR] Failed to insert user: {e}") #Debug line
     finally:

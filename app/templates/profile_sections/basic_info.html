@@ -1,0 +1,19 @@
+<div id="basic-info-container" class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Basic Personal Information
+            <button class="btn btn-sm btn-primary float-end"
+                    hx-get="{{ url_for('profile.edit_basic_info') }}"
+                    hx-target="#basic-info-container"
+                    hx-swap="innerHTML">
+                Edit
+            </button>
+        </h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Full Name:</strong> {{ profile.full_name or 'Not set' }}</p>
+        <p><strong>Date of Birth:</strong> {{ profile.date_of_birth or 'Not set' }}</p>
+        <p><strong>Gender:</strong> {{ profile.gender or 'Not set' }}</p>
+        <p><strong>Contact Number:</strong> {{ profile.contact_number or 'Not set' }}</p>
+        <p><strong>Address:</strong> {{ profile.address or 'Not set' }}</p>
+    </div>
+</div>
