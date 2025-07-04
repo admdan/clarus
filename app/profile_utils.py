@@ -1,5 +1,20 @@
 from .db import get_db_connection
 
+# ───── SETUP ─────
+def create_empty_profile_if_missing(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("INSERT IGNORE INTO user_profile (user_id) VALUES (%s)", (user_id,))
+    cursor.execute("INSERT IGNORE INTO user_pii (user_id) VALUES (%s)", (user_id,))
+    cursor.execute("INSERT IGNORE INTO user_employment (user_id) VALUES (%s)", (user_id,))
+    cursor.execute("INSERT IGNORE INTO user_banking (user_id) VALUES (%s)", (user_id,))
+    cursor.execute("INSERT IGNORE INTO user_family (user_id) VALUES (%s)", (user_id,))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 # ───── BASIC INFO ─────
 def get_user_profile(user_id):
     conn = get_db_connection()
@@ -10,18 +25,23 @@ def get_user_profile(user_id):
     conn.close()
     return data
 
-def update_user_profile(user_id, data_dict):
+def update_user_profile(user_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE user_profile
-        SET full_name = %s, gender = %s, contact_number = %s,
-            address = %s, date_of_birth = %s
-        WHERE user_id = %s
-    """, (
-        data_dict['full_name'], data_dict['gender'], data_dict['contact_number'],
-        data_dict['address'], data_dict['date_of_birth'], user_id
-    ))
+
+    cursor.execute('''
+                   UPDATE user_profile
+                   SET full_name      = %s,
+                       date_of_birth  = %s,
+                       gender         = %s,
+                       contact_number = %s,
+                       address        = %s,
+                       last_updated   = CURRENT_TIMESTAMP
+                   WHERE user_id = %s
+                   ''', (
+                       data.get('full_name'), data.get('date_of_birth'), data.get('gender'),
+                       data.get('contact_number'), data.get('address'), user_id
+                   ))
     conn.commit()
     cursor.close()
     conn.close()
@@ -201,37 +221,3 @@ def add_user_document(user_id, document_type, file_path, status="Pending"):
     conn.commit()
     cursor.close()
     conn.close()
-
-def create_empty_profile_if_missing(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("INSERT IGNORE INTO user_profile (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_pii (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_employment (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_banking (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_family (user_id) VALUES (%s)", (user_id,))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-def update_basic_profile_info(user_id, full_name=None, date_of_birth=None, gender=None, contact_number=None, address=None):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        UPDATE user_profile
-        SET full_name = %s,
-            date_of_birth = %s,
-            gender = %s,
-            contact_number = %s,
-            address = %s,
-            last_updated = CURRENT_TIMESTAMP
-        WHERE user_id = %s
-    ''', (full_name, date_of_birth, gender, contact_number, address, user_id))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-

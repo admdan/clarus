@@ -1,7 +1,13 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from .db import get_db_connection
-from .profile_utils import create_empty_profile_if_missing, update_basic_profile_info, get_user_profile
+from .profile_utils import (
+    create_empty_profile_if_missing,
+    update_user_profile,
+    get_user_profile,
+    update_user_pii,
+    get_user_pii,
+)
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
 
@@ -82,7 +88,7 @@ def basic_info():
     conn.close()
     return render_template('profile_sections/basic_info.html', profile=profile)
 
-@profile_bp.route('/edit_basic_info')
+@profile_bp.route('/edit_basic_info', methods=['GET'])
 @login_required
 def edit_basic_info():
     conn = get_db_connection()
@@ -96,25 +102,56 @@ def edit_basic_info():
 @profile_bp.route('/update_basic_info', methods=['POST'])
 @login_required
 def update_basic_info():
-    print("HTMX POST triggered!") # Print to see if it hits the route
-    # Collect form data
-    full_name = request.form.get('full_name') or None
-    date_of_birth = request.form.get('date_of_birth') or None
-    gender = request.form.get('gender') or None
-    contact_number = request.form.get('contact_number') or None
-    address = request.form.get('address') or None
-
-
-    # Update the profile table
-    update_basic_profile_info(
-        user_id=current_user.id,
-        full_name=full_name,
-        date_of_birth=date_of_birth,
-        gender=gender,
-        contact_number=contact_number,
-        address=address
-    )
-
+    # Collect basic info form data
+    form_data = {
+        'full_name': request.form.get('full_name') or None,
+        'date_of_birth': request.form.get('date_of_birth') or None,
+        'gender': request.form.get('gender') or None,
+        'contact_number': request.form.get('contact_number') or None,
+        'address': request.form.get('address') or None,
+    }
+    update_user_profile(current_user.id, form_data)
     updated_profile = get_user_profile(current_user.id)
-
     return render_template('profile_sections/basic_info.html', profile=updated_profile)
+
+@profile_bp.route('/pii')
+@login_required
+def pii_info():
+    # Fetch user PII data
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (current_user.id,))
+    pii = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return render_template('profile_sections/pii_info.html', pii=pii)
+
+@profile_bp.route('/edit_pii_info', methods=['GET'])
+@login_required
+def edit_pii_info():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (current_user.id,))
+    pii_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return render_template('profile_sections/edit_pii_info.html', pii=pii_data)
+
+@profile_bp.route('/update_pii_info', methods=['POST'])
+@login_required
+def update_pii_info():
+    # Collect PII form data
+    form_data = {
+        'id_type': request.form.get('id_type') or None,
+        'id_number': request.form.get('id_number') or None,
+        'citizenship': request.form.get('citizenship') or None,
+        'emergency_contact_name': request.form.get('emergency_contact_name') or None,
+        'emergency_contact_number': request.form.get('emergency_contact_number') or None,
+        'emergency_contact_address': request.form.get('emergency_contact_address') or None,
+    }
+    # Update the user_pii table
+    update_user_pii(current_user.id, form_data)
+    updated_pii = get_user_pii(current_user.id)
+    return render_template('profile_sections/pii_info.html', pii=updated_pii)

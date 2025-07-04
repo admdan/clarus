@@ -1,0 +1,21 @@
+<div id="pii-info-container" class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="card-title d-flex justify-content-between">
+            Personal Identification Information
+            <button class="btn btn-sm btn-primary float-end"
+                    hx-get="/profile/edit_pii_info"
+                    hx-target="#pii-info-container"
+                    hx-swap="innerHTML">
+                Edit
+            </button>
+        </h5>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>ID Type:</strong> {{ pii.id_type or '—' }}</li>
+            <li class="list-group-item"><strong>ID Number:</strong> {{ pii.id_number or '—' }}</li>
+            <li class="list-group-item"><strong>Citizenship:</strong> {{ pii.citizenship or '—' }}</li>
+            <li class="list-group-item"><strong>Emergency Contact Name:</strong> {{ pii.emergency_contact_name or '—' }}</li>
+            <li class="list-group-item"><strong>Emergency Contact Number:</strong> {{ pii.emergency_contact_number or '—' }}</li>
+            <li class="list-group-item"><strong>Emergency Contact Address:</strong> {{ pii.emergency_contact_address or '—' }}</li>
+        </ul>
+    </div>
+</div>

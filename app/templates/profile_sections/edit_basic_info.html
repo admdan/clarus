@@ -1,46 +1,48 @@
-<form hx-post="{{ url_for('profile.update_basic_info') }}"
-      hx-target="#basic-info-container"
-      hx-swap="innerHTML"
-      class="card shadow-sm mb-4">
-    <div class="card-header">
-        <h5 class="mb-0">Edit Basic Info</h5>
-    </div>
-    <div class="card-body">
-        <div class="mb-3">
-            <label class="form-label">Full Name</label>
-            <input type="text" class="form-control" name="full_name" value="{{ profile.full_name or '' }}">
+<div id="basic_info-container">
+    <form hx-post="{{ url_for('profile.update_basic_info') }}"
+          hx-target="#basic-info-container"
+          hx-swap="innerHTML"
+          class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Edit Basic Info</h5>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Date of Birth</label>
-            <input type="date" class="form-control" name="date_of_birth" value="{{ profile.date_of_birth or '' }}">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-control" name="full_name" value="{{ profile.full_name or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date of Birth</label>
+                <input type="date" class="form-control" name="date_of_birth" value="{{ profile.date_of_birth or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Gender</label>
+                <select class="form-select" name="gender">
+                    <option value="" disabled {% if not profile.gender %}selected{% endif %}>Select Gender</option>
+                    <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                    <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                    <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Contact Number</label>
+                <input type="text" class="form-control" name="contact_number" value="{{ profile.contact_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Address</label>
+                <textarea class="form-control" name="address">{{ profile.address or '' }}</textarea>
+            </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Gender</label>
-            <select class="form-select" name="gender">
-                <option value="" disabled {% if not profile.gender %}selected{% endif %}>Select Gender</option>
-                <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
-                <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
-                <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
-            </select>
+        <div class="card-footer d-flex justify-content-between">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button class="btn btn-secondary"
+                    hx-get="{{ url_for('profile.basic_info') }}"
+                    hx-target="#basic-info-container"
+                    hx-swap="innerHTML"
+                    type="button">Cancel</button>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Contact Number</label>
-            <input type="text" class="form-control" name="contact_number" value="{{ profile.contact_number or '' }}">
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Address</label>
-            <textarea class="form-control" name="address">{{ profile.address or '' }}</textarea>
-        </div>
-    </div>
-    <div class="card-footer d-flex justify-content-between">
-        <button type="submit" class="btn btn-success">Save</button>
-        <button class="btn btn-secondary"
-                hx-get="{{ url_for('profile.basic_info') }}"
-                hx-target="#basic-info-container"
-                hx-swap="innerHTML"
-                type="button">Cancel</button>
-    </div>
-</form>
+    </form>
+</div>
 
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>
 

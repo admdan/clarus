@@ -1,0 +1,48 @@
+<div id="pii-info-container">
+    <form hx-post="{{ url_for('profile.update_pii_info') }}"
+          hx-target="#pii-info-container"
+          hx-swap="innerHTML"
+          class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Edit PII Info</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">ID Type</label>
+                <input type="text" class="form-control" name="id_type" value="{{ pii.id_type or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">ID Number</label>
+                <input type="text" class="form-control" name="id_number" value="{{ pii.id_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Citizenship</label>
+                <input type="text" class="form-control" name="citizenship" value="{{ pii.citizenship or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Emergency Contact Name</label>
+                <input type="text" class="form-control" name="emergency_contact_name" value="{{ pii.emergency_contact_name or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Emergency Contact Number</label>
+                <input type="text" class="form-control" name="emergency_contact_number" value="{{ pii.emergency_contact_number or '' }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Emergency Contact Address</label>
+                <textarea class="form-control" name="emergency_contact_address">{{ pii.emergency_contact_address.strip() if pii.emergency_contact_address else '' }}</textarea>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button"
+                    class="btn btn-secondary"
+                    hx-get="{{ url_for('profile.pii_info') }}"
+                    hx-target="#pii-info-container"
+                    hx-swap="innerHTML">
+                Cancel
+            </button>
+        </div>
+    </form>
+</div>
+
+<script src="https://unpkg.com/htmx.org@1.9.5"></script>
