@@ -40,6 +40,14 @@
             Loading PII info...
         </div>
 
+        <div id="employment-info-section"
+             hx-get="{{ url_for('profile.employment_info') }}"
+             hx-trigger="load"
+             hx-target="this"
+             hx-swap="outerHTML">
+            Loading employment info...
+        </div>
+
         <!-- Assigned Devices Card -->
         <div class="card shadow-sm">
             <div class="card-body">
