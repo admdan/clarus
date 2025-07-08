@@ -1,0 +1,21 @@
+<div id="employment-info-container" class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="card-title d-flex justify-content-between">
+            Employment Information
+            <button class="btn btn-sm btn-primary float-end"
+                    hx-get="/profile/edit_employment_info"
+                    hx-target="#employment-info-container"
+                    hx-swap="innerHTML">
+                Edit
+            </button>
+        </h5>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Job Title:</strong> {{ employment.job_title or '—' }} </li>
+            <li class="list-group-item"><strong>Department:</strong> {{ employment.department or '—' }} </li>
+            <li class="list-group-item"><strong>Work Email:</strong> {{ employment.work_email or '—' }} </li>
+            <li class="list-group-item"><strong>Date Joined:</strong> {{ employment.date_joined or '—' }} </li>
+            <li class="list-group-item"><strong>Employment Status:</strong> {{ employment.employment_status or '—' }} </li>
+            <li class="list-group-item"><strong>Supervisor:</strong> {{ employment.supervisor or '—' }} </li>
+        </ul>
+    </div>
+</div>

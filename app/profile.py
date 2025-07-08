@@ -7,6 +7,8 @@ from .profile_utils import (
     get_user_profile,
     update_user_pii,
     get_user_pii,
+    update_user_employment,
+    get_user_employment
 )
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
@@ -154,4 +156,47 @@ def update_pii_info():
     # Update the user_pii table
     update_user_pii(current_user.id, form_data)
     updated_pii = get_user_pii(current_user.id)
+
     return render_template('profile_sections/pii_info.html', pii=updated_pii)
+
+@profile_bp.route('/employment')
+@login_required
+def employment_info():
+    # Fetch employment info
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (current_user.id,))
+    employment = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return render_template('profile_sections/employment_info.html', employment=employment)
+
+@profile_bp.route('/edit_employment_info', methods=['GET'])
+@login_required
+def edit_employment_info():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (current_user.id,))
+    employment_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return render_template('profile_sections/edit_employment_info.html', employment=employment_data)
+
+@profile_bp.route('/update_employment_info', methods=['POST'])
+@login_required
+def update_employment_info():
+    # Collect employment data
+    form_data = {
+        'job_title': request.form.get('job_title') or None,
+        'department': request.form.get('department') or None,
+        'work_email': request.form.get('work_email') or None,
+        'date_joined': request.form.get('date_joined') or None,
+        'employment_status': request.form.get('employment_status') or None,
+        'supervisor': request.form.get('supervisor') or None,
+    }
+    update_user_employment(current_user.id, form_data)
+    updated_employment = get_user_employment(current_user.id)
+
+    return render_template('profile_sections/employment_info.html', employment=updated_employment)
