@@ -48,6 +48,30 @@
             Loading employment info...
         </div>
 
+        <div id="banking-info-section"
+             hx-get="{{ url_for('profile.banking_info') }}"
+             hx-trigger="load"
+             hx-target="this"
+             hx-swap="outerHTML">
+            Loading banking info...
+        </div>
+
+        <div id="vehicles-info-section"
+             hx-get="{{ url_for('profile.vehicles_info') }}"
+             hx-trigger="load"
+             hx-target="this"
+             hx-swap="outerHTML">
+            Loading vehicles info...
+        </div>
+
+        <div id="family-info-section"
+             hx-get="{{ url_for('profile.family_info') }}"
+             hx-trigger="load"
+             hx-target="this"
+             hx-swap="outerHTML">
+            Loading vehicles info...
+        </div>
+
         <!-- Assigned Devices Card -->
         <div class="card shadow-sm">
             <div class="card-body">
