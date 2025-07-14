@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, flash, redirect, url_for, send_from_directory
 from flask_login import login_required, current_user
 from .db import get_db_connection
 from .profile_utils import (
@@ -10,9 +10,14 @@ from .profile_utils import (
     update_user_vehicle, get_user_vehicles, get_vehicle_by_id, delete_user_vehicle, add_user_vehicle,
     update_user_family, get_user_family,
     get_user_spouses, add_user_spouse, update_user_spouse, delete_user_spouse,
-    get_user_dependents, add_user_dependent, update_user_dependent, delete_user_dependent
-
+    get_user_dependents, add_user_dependent, update_user_dependent, delete_user_dependent,
+    get_user_documents, add_user_document
 )
+from werkzeug.utils import secure_filename
+import os, uuid, mimetypes, subprocess
+
+UPLOAD_FOLDER = os.path.join('app', 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
 
@@ -84,7 +89,7 @@ def get_full_profile(user_id):
 
     cursor9 = conn.cursor(dictionary=True)
     cursor9.execute("SELECT * FROM user_documents WHERE user_id = %s", (user_id,))
-    documents = cursor9.fetchone()
+    documents = cursor9.fetchall()
     cursor9.close()
 
     conn.close()
@@ -461,3 +466,85 @@ def delete_dependent_info(dependent_id):
         'dependents': get_user_dependents(current_user.id)
     }
     return render_template('profile_sections/family_info.html', **family_data)
+
+def is_file_safe(filepath):
+    try:
+        abs_path = os.path.abspath(filepath)
+        result = subprocess.run(['clamscan', abs_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+        return b"Infected files: 0" in result.stdout
+    except Exception as e:
+        print("Error:", e)
+        return False
+
+@profile_bp.route('/documents')
+@login_required
+def document_info():
+    documents = get_user_documents(current_user.id)
+    return render_template('/profile_sections/document_info.html', documents=documents)
+
+@profile_bp.route('/upload_documents', methods=['POST'])
+@login_required
+def upload_documents():
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    file = request.files.get('document')
+    doc_type = request.form.get('document_type')
+    display_name = request.form.get('display_name')
+
+    if not file or '.' not in file.filename:
+        return "Invalid file", 400
+
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        return "Invalid file type", 400
+
+    # Rename: username-doc_type-uuid.ext
+    original_name = secure_filename(file.filename.rsplit('.', 1)[0])
+    unique_filename = f"user{current_user.id}-{doc_type}-{uuid.uuid4().hex[:8]}.{ext}"
+    save_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+    file.save(save_path)
+
+    # MIME Type Check
+    mime_type, _ = mimetypes.guess_type(save_path)
+    if mime_type not in ['application/pdf', 'image/jpeg', 'image/png']:
+        os.remove(save_path)
+        return "Invalid MIME type.", 400
+
+    # Virus scan
+    if not is_file_safe(save_path):
+        os.remove(save_path)
+        return "Upload blocked: virus detected.", 400
+    else:
+        print("File is safe.")
+
+    add_user_document(current_user.id, doc_type, unique_filename, display_name=display_name)
+    documents = get_user_documents(current_user.id)
+    return render_template('profile_sections/document_info.html', documents=documents)
+
+@profile_bp.route('/delete_document/<int:doc_id>', methods=['POST'])
+@login_required
+def delete_document(doc_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM user_documents WHERE id = %s AND user_id = %s", (doc_id, current_user.id))
+    doc = cursor.fetchone()
+
+    if not doc:
+        cursor.close()
+        conn.close()
+        return "Not found", 404
+
+    try:
+        os.remove(os.path.join(UPLOAD_FOLDER, doc['file_path']))
+    except FileNotFoundError:
+        pass
+
+    cursor.execute("DELETE FROM user_documents WHERE id = %s", (doc_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    documents = get_user_documents(current_user.id)
+    return render_template('profile_sections/document_info.html', documents=documents)
+
+

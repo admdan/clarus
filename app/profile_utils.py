@@ -306,13 +306,13 @@ def get_user_documents(user_id):
     conn.close()
     return data
 
-def add_user_document(user_id, document_type, file_path, status="Pending"):
+def add_user_document(user_id, document_type, file_path, status="Pending", display_name=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO user_documents (user_id, document_type, file_path, status)
-        VALUES (%s, %s, %s, %s)
-    """, (user_id, document_type, file_path, status))
+        INSERT INTO user_documents (user_id, document_type, file_path, status, display_name)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (user_id, document_type, file_path, status, display_name))
     conn.commit()
     cursor.close()
     conn.close()
