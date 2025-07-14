@@ -12,6 +12,8 @@ def create_app():
     app.config.from_object('config.Config')
     app.secret_key = app.config['SECRET_KEY']
 
+    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB for file upload
+
     login_manager.init_app(app)
     login_manager.login_view = 'routes.login_register'
 
