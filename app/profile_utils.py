@@ -139,39 +139,101 @@ def update_user_family(user_id, data_dict):
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_family
-        SET marital_status = %s, spouse_name = %s, spouse_id_type = %s,
-            spouse_id_number = %s, spouse_address = %s
+        SET marital_status = %s
         WHERE user_id = %s
+    """, (data_dict['marital_status'], user_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+# ───── SPOUSES ─────
+def get_user_spouses(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_spouses WHERE user_id = %s", (user_id,))
+    spouses = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return spouses
+
+def add_user_spouse(user_id, data):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO user_spouses (user_id, spouse_name, spouse_id_type, spouse_id_number, spouse_address)
+        VALUES (%s, %s, %s, %s, %s)
     """, (
-        data_dict['marital_status'], data_dict['spouse_name'], data_dict['spouse_id_type'],
-        data_dict['spouse_id_number'], data_dict['spouse_address'], user_id
+        user_id, data['spouse_name'], data['spouse_id_type'],
+        data['spouse_id_number'], data['spouse_address']
     ))
     conn.commit()
     cursor.close()
     conn.close()
 
-def get_user_children(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_children WHERE user_id = %s", (user_id,))
-    data = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return data
-
-def insert_user_child(user_id, name, dob):
+def update_user_spouse(spouse_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO user_children (user_id, child_name, child_dob) VALUES (%s, %s, %s)",
-                   (user_id, name, dob))
+    cursor.execute("""
+        UPDATE user_spouses
+        SET spouse_name = %s, spouse_id_type = %s, spouse_id_number = %s, spouse_address = %s
+        WHERE id = %s
+    """, (
+        data['spouse_name'], data['spouse_id_type'],
+        data['spouse_id_number'], data['spouse_address'], spouse_id
+    ))
     conn.commit()
     cursor.close()
     conn.close()
 
-def delete_user_child(child_id):
+def delete_user_spouse(spouse_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_children WHERE id = %s", (child_id,))
+    cursor.execute("DELETE FROM user_spouses WHERE id = %s", (spouse_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+# ───── DEPENDENT ─────
+def get_user_dependents(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_dependents WHERE user_id = %s", (user_id,))
+    dependents = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return dependents
+
+def add_user_dependent(user_id, data):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO user_dependents (user_id, dependent_name, dependent_relationship, dependent_birthdate, dependent_notes)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (
+        user_id, data['dependent_name'], data['dependent_relationship'], data['dependent_birthdate'], data['dependent_notes']
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_user_dependent(dependent_id, data):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE user_dependents
+        SET dependent_name = %s, dependent_relationship = %s, dependent_birthdate = %s, dependent_notes = %s
+        WHERE id = %s
+    """, (
+        data['dependent_name'], data['dependent_relationship'], data['dependent_birthdate'], data['dependent_notes']
+    ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def delete_user_dependent(dependent_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_dependents WHERE id = %s", (dependent_id,))
     conn.commit()
     cursor.close()
     conn.close()
@@ -186,17 +248,50 @@ def get_user_vehicles(user_id):
     conn.close()
     return data
 
+def get_vehicle_by_id(vehicle_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM user_vehicles WHERE id = %s", (vehicle_id,))
+    vehicle = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return vehicle
+
 def add_user_vehicle(user_id, data_dict):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO user_vehicles (user_id, vehicle_type, make_model, plate_number,
-                                   color, parking_permit_id, parking_lot)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (
-        user_id, data_dict['vehicle_type'], data_dict['make_model'], data_dict['plate_number'],
-        data_dict['color'], data_dict['parking_permit_id'], data_dict['parking_lot']
+    cursor.execute('''
+        INSERT INTO user_vehicles (user_id, vehicle_type, make, model, year_model, plate_number,
+             color, parking_permit_id, last_updated)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+    ''', (
+        user_id, data_dict['vehicle_type'], data_dict['make'], data_dict['model'], data_dict['year_model'], data_dict['plate_number'],
+        data_dict['color'], data_dict['parking_permit_id']
     ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def update_user_vehicle(vehicle_id, data_dict):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE user_vehicles
+        SET vehicle_type = %s, make = %s, model = %s, year_model = %s, plate_number = %s,
+            color = %s, parking_permit_id = %s, last_updated = CURRENT_TIMESTAMP
+        WHERE id = %s
+    ''', (data_dict['vehicle_type'], data_dict['make'], data_dict['model'], data_dict['year_model'],
+        data_dict['plate_number'], data_dict['color'], data_dict['parking_permit_id'], vehicle_id
+    ))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def delete_user_vehicle(vehicle_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM user_vehicles WHERE id = %s", (vehicle_id,))
     conn.commit()
     cursor.close()
     conn.close()

@@ -1,0 +1,18 @@
+<div id="banking-info-container" class="card shadow-sm mb-4">
+    <div class="card-header">
+        <h5 class="card-title d-flex justify-content-between">
+            Banking Information
+            <button class="btn btn-sm btn-primary float-end"
+                    hx-get="/profile/edit_banking_info"
+                    hx-target="#banking-info-container"
+                    hx-swap="innerHTML">
+              Edit
+            </button>
+        </h5>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Bank Name:</strong> {{ banking.bank_name or '-' }}</li>
+            <li class="list-group-item"><strong>Bank Account Number:</strong> {{ banking.bank_account_number or '-' }}</li>
+            <li class="list-group-item"><strong>Account Holder Name:</strong> {{ banking.account_holder_name or '-' }}</li>
+        </ul>
+    </div>
+</div>

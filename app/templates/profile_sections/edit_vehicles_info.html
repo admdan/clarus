@@ -1,0 +1,56 @@
+<div id="vehicles-info-container">
+    <form
+        hx-post="{{ url_for('profile.edit_vehicles_info', vehicle.id) if vehicle else url_for('profile.add_vehicles_info') }}"
+        hx-target="#vehicles-info-container"
+        hx-swap="innerHTML"
+        class="card shadow-sm mb-4"
+    >
+        <div class="card-header">
+            <h5 class="mb-0">{{ 'Edit Vehicle Info' if vehicle else 'Add Vehicle Info' }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Vehicle Type</label>
+                <select class="form-select" name="vehicle_type">
+                    <option value="" disabled {% if not vehicle %}selected{% endif %}>Select Vehicle Type</option>
+                    <option value="Motorcycle" {% if vehicle and vehicle.vehicle_type == 'Motorcycle' %}selected{% endif %}>Motorcycle</option>
+                    <option value="Car" {% if vehicle and vehicle.vehicle_type == 'Car' %}selected{% endif %}>Car</option>
+                    <option value="Van" {% if vehicle and vehicle.vehicle_type == 'Van' %}selected{% endif %}>Van</option>
+                </select>
+            </div>
+            <div class="mb-3"><label class="form-label">Make</label>
+                <input type="text" class="form-control" name="make" value="{{ vehicle.make if vehicle else '' }}">
+            </div>
+            <div class="mb-3"><label class="form-label">Model</label>
+                <input type="text" class="form-control" name="model" value="{{ vehicle.model if vehicle else '' }}">
+            </div>
+            <div class="mb-3"><label class="form-label">Year</label>
+                <select class="form-select" name="year_model">
+                    <option value="" disabled {% if not vehicle %}selected{% endif %}>Select Year</option>
+                    {% for year in range(1990, 2026) %}
+                        <option value="{{ year }}" {% if vehicle and vehicle.year_model == year %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3"><label class="form-label">Plate Number</label>
+                <input type="text" class="form-control" name="plate_number" value="{{ vehicle.plate_number if vehicle else '' }}">
+            </div>
+            <div class="mb-3"><label class="form-label">Color</label>
+                <input type="text" class="form-control" name="color" value="{{ vehicle.color if vehicle else '' }}">
+            </div>
+            <div class="mb-3"><label class="form-label">Parking Permit ID</label>
+                <input type="text" class="form-control" name="parking_permit_id" value="{{ vehicle.parking_permit_id if vehicle else '' }}">
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button"
+                    class="btn btn-secondary"
+                    hx-get="{{ url_for('profile.vehicles_info') }}"
+                    hx-target="#vehicles-info-container"
+                    hx-swap="innerHTML">Cancel</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://unpkg.com/htmx.org@1.9.5"></script>
