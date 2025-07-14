@@ -109,3 +109,7 @@ uv.lock
 # Cursor AI editor
 .cursorignore
 .cursorindexingignore
+
+# File Uploads
+/app/static/uploads/
+
