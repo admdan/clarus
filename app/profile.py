@@ -485,40 +485,50 @@ def document_info():
 @profile_bp.route('/upload_documents', methods=['POST'])
 @login_required
 def upload_documents():
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     file = request.files.get('document')
     doc_type = request.form.get('document_type')
     display_name = request.form.get('display_name')
 
-    if not file or '.' not in file.filename:
+    if not file or not file.filename or '.' not in file.filename:
         return "Invalid file", 400
 
     ext = file.filename.rsplit('.', 1)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
         return "Invalid file type", 400
 
-    # Rename: username-doc_type-uuid.ext
-    original_name = secure_filename(file.filename.rsplit('.', 1)[0])
-    unique_filename = f"user{current_user.id}-{doc_type}-{uuid.uuid4().hex[:8]}.{ext}"
-    save_path = os.path.join(UPLOAD_FOLDER, unique_filename)
-    file.save(save_path)
+    # Prepare filename
+    safe_doc_type = doc_type.replace(" ", "_")
+    unique_filename = f"user{current_user.id}-{safe_doc_type}-{uuid.uuid4().hex[:8]}.{ext}"
+    user_folder = os.path.join(UPLOAD_FOLDER, f"user_{current_user.id}")
+    os.makedirs(user_folder, exist_ok=True)
 
-    # MIME Type Check
-    mime_type, _ = mimetypes.guess_type(save_path)
-    if mime_type not in ['application/pdf', 'image/jpeg', 'image/png']:
-        os.remove(save_path)
+    # Generate a full path but don't save yet
+    file_path = f"user_{current_user.id}/{unique_filename}"  # always use forward slash in URLs
+    save_path = os.path.join(user_folder, unique_filename)
+
+    # Read a file into memory for scanning and validaton
+    file_contents = file.read()
+
+    # Check MIME type from in-memory content using `mimetypes` needs a fallback
+    guessed_type, _ = mimetypes.guess_type(file.filename)
+    if guessed_type not in ['application/pdf', 'image/jpeg', 'image/png']:
         return "Invalid MIME type.", 400
 
-    # Virus scan
+    # Write to disk temporarily (needed for virus scan)
+    with open(save_path, 'wb') as f:
+        f.write(file_contents)
+
+    # Virus scan the saved file
     if not is_file_safe(save_path):
         os.remove(save_path)
         return "Upload blocked: virus detected.", 400
     else:
         print("File is safe.")
 
-    add_user_document(current_user.id, doc_type, unique_filename, display_name=display_name)
-    documents = get_user_documents(current_user.id)
-    return render_template('profile_sections/document_info.html', documents=documents)
+        # File is valid and safe, save reference
+        add_user_document(current_user.id, doc_type, file_path, display_name=display_name)
+        documents = get_user_documents(current_user.id)
+        return render_template('profile_sections/document_info.html', documents=documents)
 
 @profile_bp.route('/delete_document/<int:doc_id>', methods=['POST'])
 @login_required
@@ -535,7 +545,9 @@ def delete_document(doc_id):
         return "Not found", 404
 
     try:
-        os.remove(os.path.join(UPLOAD_FOLDER, doc['file_path']))
+        file_full_path = os.path.join(UPLOAD_FOLDER, doc['file_path'])
+        if os.path.exists(file_full_path):
+            os.remove(file_full_path)
     except FileNotFoundError:
         pass
 
