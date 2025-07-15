@@ -28,7 +28,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">File (PNG, JPG, JPEG, PDF)</label>
-            <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.jpeg" required>
+            <input type="file" name="document" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
           </div>
           <div class="col-12">
             <button class="btn btn-primary" type="submit">Upload</button>
@@ -40,7 +40,12 @@
           {% for doc in documents %}
             <li class="list-group-item">
               <div class="d-flex justify-content-between align-items-center">
-                <strong>{{ loop.index }}. {{ doc.display_name or doc.document_type|capitalize }}</strong>
+              <div>
+                <strong>{{ loop.index }}. {{ doc.display_name or doc.document_type|capitalize }}</strong><br>
+                <small class="text-muted ms-2">
+                  Uploaded by: {{ doc.username }} on {{ doc.uploaded_at.strftime('%d %B %Y, %I:%M %p') }}
+                </small>
+              </div>
                 <div>
                   <button
                     class="btn btn-sm btn-secondary me-2"
@@ -63,11 +68,11 @@
               <div class="collapse mt-3" id="preview-{{ doc.id }}">
                 {% set ext = doc.file_path.split('.')[-1] %}
                 {% if ext in ['jpg', 'jpeg', 'png'] %}
-                  <img src="{{ url_for('static', filename='uploads/' ~ doc.file_path) }}"
+                  <img src="{{ url_for('static', filename='uploads/' + doc.file_path) }}"
                        class="img-fluid rounded border"
                        style="max-height: 500px;" />
                 {% elif ext == 'pdf' %}
-                  <iframe src="{{ url_for('static', filename='uploads/' ~ doc.file_path) }}"
+                  <iframe src="{{ url_for('static', filename='uploads/' + doc.file_path) }}"
                           width="100%" height="500px"
                           class="mt-2 border"></iframe>
                 {% else %}

@@ -300,7 +300,13 @@ def delete_user_vehicle(vehicle_id):
 def get_user_documents(user_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_documents WHERE user_id = %s", (user_id,))
+    cursor.execute('''
+                   SELECT d.*, u.username
+                   FROM user_documents d
+                            JOIN users u ON d.user_id = u.id
+                   WHERE d.user_id = %s
+                   ORDER BY d.id DESC
+                   ''', (user_id,))
     data = cursor.fetchall()
     cursor.close()
     conn.close()
