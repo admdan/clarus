@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, abort, flash, redirect, url_for, send_from_directory
+from flask import Blueprint, render_template, request, abort, current_app
 from flask_login import login_required, current_user
 from .db import get_db_connection
 from .profile_utils import (
@@ -11,9 +11,11 @@ from .profile_utils import (
     update_user_family, get_user_family,
     get_user_spouses, add_user_spouse, update_user_spouse, delete_user_spouse,
     get_user_dependents, add_user_dependent, update_user_dependent, delete_user_dependent,
-    get_user_documents, add_user_document
+    get_user_documents, add_user_document,
+    update_user_profile_picture, get_user_profile_picture, allowed_file
 )
 from werkzeug.utils import secure_filename
+from datetime import datetime, timezone
 import os, uuid, mimetypes, subprocess
 
 UPLOAD_FOLDER = os.path.join('app', 'static', 'uploads')
@@ -511,7 +513,7 @@ def upload_documents():
 
     # Check MIME type from in-memory content using `mimetypes` needs a fallback
     guessed_type, _ = mimetypes.guess_type(file.filename)
-    if guessed_type not in ['application/pdf', 'image/jpeg', 'image/png']:
+    if guessed_type not in ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']:
         return "Invalid MIME type.", 400
 
     # Write to disk temporarily (needed for virus scan)
@@ -559,4 +561,46 @@ def delete_document(doc_id):
     documents = get_user_documents(current_user.id)
     return render_template('profile_sections/document_info.html', documents=documents)
 
+@profile_bp.route('/profile_picture')
+@login_required
+def profile_picture_info():
+    folder_path = os.path.join(current_app.root_path, 'static', 'uploads', f"user_{current_user.id}","profile_pictures")
+    profile_picture_filename = None
 
+    if os.path.exists(folder_path):
+        files = sorted(os.listdir(folder_path), key=lambda x: os.path.getmtime(os.path.join(folder_path, x)),
+                       reverse=True)
+        if files:
+            profile_picture_filename = f"user_{current_user.id}/profile_pictures/{files[0]}"
+
+    timestamp = int(datetime.now(timezone.utc).timestamp())
+    return render_template('profile_sections/profile_picture.html',
+                           profile_picture_filename=profile_picture_filename,
+                           timestamp=timestamp)
+
+@profile_bp.route('/upload_profile_picture', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    file = request.files.get('profile_picture')
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        folder_path = os.path.join(current_app.root_path,'static', 'uploads', f"user_{current_user.id}","profile_pictures")
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Clear existing profile pictures
+        for f in os.listdir(folder_path):
+            try:
+                os.remove(os.path.join(folder_path, f))
+            except:
+                continue
+
+        file_path = os.path.join(folder_path, unique_filename)
+        file.save(file_path)
+
+        timestamp = int(datetime.now(timezone.utc).timestamp())
+        print("profile_picture_filename =", current_user.profile_picture)
+        return render_template('profile_sections/profile_picture.html', profile_picture_filename=unique_filename, timestamp=timestamp)  # Pass timestamp
+
+    error = "Invalid file or file type."
+    return render_template('profile_sections/profile_picture.html', error=error)

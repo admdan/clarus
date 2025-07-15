@@ -1,3 +1,5 @@
+from fileinput import filename
+
 from .db import get_db_connection
 
 # ───── SETUP ─────
@@ -322,3 +324,24 @@ def add_user_document(user_id, document_type, file_path, status="Pending", displ
     conn.commit()
     cursor.close()
     conn.close()
+
+def get_user_profile_picture(user_id):
+    conn = get_db_connection()
+    with conn.cursor(dictionary=True) as cursor:
+        cursor.execute("SELECT profile_picture FROM users WHERE id = %s", (user_id,))
+        result = cursor.fetchone()
+    conn.close()
+    return result["profile_picture"] if result else None
+
+def update_user_profile_picture(user_id, file_path):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET profile_picture = %s WHERE id = %s", (file_path, user_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def allowed_file(filename):
+    allowed_extensions = {'png', 'jpg', 'jpeg'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
+

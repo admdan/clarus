@@ -1,141 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
-    <meta charset="UTF-8">
-    <title>{{ current_user.username }}'s Profile | Clarus</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>{{ current_user.username }}'s Profile | Clarus</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <style>
+    :root[data-bs-theme="light"] {
+      --bs-body-bg: #f8f9fa;
+      --bs-body-color: #212529;
+    }
+    :root[data-bs-theme="dark"] {
+      --bs-body-bg: #121212;
+      --bs-body-color: #f8f9fa;
+    }
+    body {
+      background-color: var(--bs-body-bg);
+      color: var(--bs-body-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    #themeToggle {
+      font-size: 1.25rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+    [data-bs-theme="dark"] #themeIcon {
+      color: white;
+    }
+    [data-bs-theme="light"] #themeIcon {
+      color: #212529;
+    }
+    .nav-tabs .nav-link {
+      transition: background-color 0.2s, color 0.2s;
+    }
+    .nav-tabs .nav-link:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+      cursor: pointer;
+    }
+    .profile-card {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 12px;
+      background-color: var(--bs-card-bg);
+      box-shadow: 0 0 12px rgba(0,0,0,0.1); /* Light mode shadow */
+      transition: box-shadow 0.3s, transform 0.3s ease;
+    }
+    .profile-left {
+      flex: 0 0 auto;
+    }
+    .profile-right {
+      flex: 1 1 auto;
+      animation: fadeIn 0.5s ease;
+    }
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .nav-tabs .nav-link {
+      transition: background-color 0.3s, color 0.3s, transform 0.2s;
+      position: relative;
+    }
+
+    .nav-tabs .nav-link:hover {
+      background-color: rgba(13, 110, 253, 0.15); /* soft Bootstrap primary */
+      transform: translateY(-2px);
+      color: var(--bs-primary);
+      border-color: transparent;
+    }
+
+    [data-bs-theme="dark"] .profile-card {
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.08); /* Soft white glow in dark mode */
+    }
+
+    .profile-card:hover {
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2); /* Light mode hover */
+      transform: scale(1.01);
+    }
+
+    /* Profile picture hover animation */
+    .profile-avatar {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .profile-avatar:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 20px rgba(0, 123, 255, 0.25);
+    }
+
+    [data-bs-theme="dark"] .profile-card:hover {
+      box-shadow: 0 4px 24px rgba(255, 255, 255, 0.1), 0 1px 3px rgba(255, 255, 255, 0.05); !important; /* Dark mode hover glow */
+      transform: scale(1.01);
+    }
+
+    [data-bs-theme="dark"] .nav-tabs .nav-link:hover {
+      background-color: rgba(13, 110, 253, 0.3); /* slightly stronger in dark */
+    }
+
+    .nav-tabs .nav-link.active {
+      font-weight: bold;
+      border-bottom: 2px solid var(--bs-primary);
+    }
+  </style>
 </head>
-<body class="bg-light">
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Profile Management</h2>
-            <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
-        </div>
-
-        <!-- Account Details Card -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Account Details</h5>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item"><strong>Username:</strong> {{ current_user.username }}</li>
-                    <li class="list-group-item"><strong>Email:</strong> {{ current_user.email }}</li>
-                    <li class="list-group-item"><strong>Role:</strong> {{ current_user.role }}</li>
-                </ul>
-            </div>
-        </div>
-
-        <div id="basic-info-section"
-             hx-get="{{ url_for('profile.basic_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading basic info...
-        </div>
-
-        <div id="pii-info-section"
-             hx-get="{{ url_for('profile.pii_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading PII info...
-        </div>
-
-        <div id="employment-info-section"
-             hx-get="{{ url_for('profile.employment_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading employment info...
-        </div>
-
-        <div id="banking-info-section"
-             hx-get="{{ url_for('profile.banking_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading banking info...
-        </div>
-
-        <div id="vehicles-info-section"
-             hx-get="{{ url_for('profile.vehicles_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading vehicles info...
-        </div>
-
-        <div id="family-info-section"
-             hx-get="{{ url_for('profile.family_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading vehicles info...
-        </div>
-
-        <div id="document-upload-section"
-             hx-get="{{ url_for('profile.document_info') }}"
-             hx-trigger="load"
-             hx-target="this"
-             hx-swap="outerHTML">
-            Loading document upload section...
-        </div>
-
-        <!-- Assigned Devices Card -->
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Assigned Devices</h5>
-                {% if assigned_assets %}
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Device Type</th>
-                                <th>Serial Number</th>
-                                <th>Status</th>
-                                <th>Model</th>
-                                <th>Remarks</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for asset in assigned_assets %}
-                                <tr>
-                                    <td>{{ asset.device_type }}</td>
-                                    <td>{{ asset.serial_number }}</td>
-                                    <td>{{ asset.status }}</td>
-                                    <td>{{ asset.model }}</td>
-                                    <td>{{ asset.remarks or '-' }}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#extraInfo{{ loop.index }}"
-                                                aria-expanded="false"
-                                                aria-controls="extraInfo{{ loop.index }}"
-                                                aria-label="View more details about {{ asset.device_type }} {{ asset.serial_number }}">
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
-                            <tr class="collapse" id="extraInfo{{ loop.index }}">
-                                <td colspan="6">
-                                    <div class="p-3 border rounded bg-light">
-                                        <p><strong>Manufacturer:</strong> {{ asset.manufacturer or 'N/A' }}</p>
-                                        <p><strong>Warranty End:</strong> {{ asset.warranty_end or 'N/A' }}</p>
-                                        <p><strong>Last Updated:</strong> {{ asset.last_updated or 'N/A' }}</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <p class="text-muted">No devices assigned to you.</p>
-                {% endif %}
-            </div>
-        </div>
+<body>
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-person-gear me-2"></i>Profile Management</h2>
+    <div class="d-flex gap-2 align-items-center">
+      <button id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme">
+        <i class="bi bi-brightness-high-fill" id="themeIcon"></i>
+      </button>
+      <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+  <!-- Profile Card Fusion -->
+  <div class="profile-card mb-4">
+    <div class="profile-left" id="profile-picture-section"
+         hx-get="{{ url_for('profile.profile_picture_info') }}"
+         hx-trigger="load"
+         hx-target="this"
+         hx-swap="outerHTML">
+      Loading profile picture...
+    </div>
+    <div class="profile-right">
+      <h4 class="fw-bold mb-3">{{ current_user.username }}</h4>
+      <p class="mb-1"><span class="text-muted">Email:</span> {{ current_user.email }}</p>
+      <p><span class="text-muted">Role:</span> {{ current_user.role }}</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="d-flex justify-content-center">
+    <ul class="nav nav-tabs mb-4" id="profileTab" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">Basic Info</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pii" type="button" role="tab">PII Info</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#employment" type="button" role="tab">Employment</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#banking" type="button" role="tab">Banking</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#vehicles" type="button" role="tab">Vehicles</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#family" type="button" role="tab">Family</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">Documents</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#devices" type="button" role="tab">Devices</button></li>
+    </ul>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="basic" role="tabpanel"
+         data-hx-get="{{ url_for('profile.basic_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading basic info...</div>
+    <div class="tab-pane fade" id="pii" role="tabpanel"
+         data-hx-get="{{ url_for('profile.pii_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading PII info...</div>
+    <div class="tab-pane fade" id="employment" role="tabpanel"
+         data-hx-get="{{ url_for('profile.employment_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading employment info...</div>
+    <div class="tab-pane fade" id="banking" role="tabpanel"
+         data-hx-get="{{ url_for('profile.banking_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading banking info...</div>
+    <div class="tab-pane fade" id="vehicles" role="tabpanel"
+         data-hx-get="{{ url_for('profile.vehicles_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading vehicles info...</div>
+    <div class="tab-pane fade" id="family" role="tabpanel"
+         data-hx-get="{{ url_for('profile.family_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading family info...</div>
+    <div class="tab-pane fade" id="documents" role="tabpanel"
+         data-hx-get="{{ url_for('profile.document_info') }}"
+         data-hx-trigger="revealed"
+         data-hx-swap="innerHTML">Loading document upload section...</div>
+    <div class="tab-pane fade" id="devices" role="tabpanel">
+      <div class="card shadow-sm mt-3">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Assigned Devices</h5>
+          {% if assigned_assets %}
+          <table class="table table-striped">
+            <thead><tr>
+              <th>Device Type</th><th>Serial Number</th><th>Status</th><th>Model</th><th>Remarks</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              {% for asset in assigned_assets %}
+              <tr>
+                <td>{{ asset.device_type }}</td><td>{{ asset.serial_number }}</td><td>{{ asset.status }}</td>
+                <td>{{ asset.model }}</td><td>{{ asset.remarks or '-' }}</td>
+                <td><button class="btn btn-sm btn-info" data-bs-toggle="collapse" data-bs-target="#extraInfo{{ loop.index }}">View</button></td>
+              </tr>
+              <tr class="collapse" id="extraInfo{{ loop.index }}"><td colspan="6">
+                <div class="p-3 border rounded bg-body-secondary">
+                  <p><strong>Manufacturer:</strong> {{ asset.manufacturer or 'N/A' }}</p>
+                  <p><strong>Warranty End:</strong> {{ asset.warranty_end or 'N/A' }}</p>
+                  <p><strong>Last Updated:</strong> {{ asset.last_updated or 'N/A' }}</p>
+                </div>
+              </td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="text-muted">No devices assigned to you.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.5"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-bs-theme', savedTheme);
+      document.getElementById('themeIcon').className =
+        savedTheme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
+    }
+  });
+  function toggleTheme() {
+    const html = document.documentElement;
+    const icon = document.getElementById('themeIcon');
+    const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', next);
+    icon.className = next === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
+    localStorage.setItem('theme', next);
+  }
+</script>
 </body>
 </html>
