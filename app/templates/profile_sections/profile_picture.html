@@ -1,0 +1,47 @@
+<div id="profile-picture-section">
+  <div class="text-center">
+    <div class="position-relative d-inline-block">
+      {% if profile_picture_filename %}
+      <div class="position-relative d-inline-block">
+          <img src="{{ url_for('static', filename='uploads/' + profile_picture_filename) }}?t={{ timestamp }}"
+               alt="Profile Picture"
+               class="rounded-circle shadow profile-avatar"
+               style="width: 150px; height: 150px; object-fit: cover; border: 2px solid #fff;">
+      </div>
+      {% else %}
+      <div class="position-relative d-inline-block">
+        <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=random&size=128"
+             alt="Default Avatar"
+             class="rounded-circle shadow profile-avatar"
+             style="width: 150px; height: 150px; object-fit: cover; border: 2px solid #fff;">
+      </div>
+      {% endif %}
+      <!-- Floating pencil icon triggers file input -->
+      <div class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-1"
+           role="button"
+           onclick="triggerFileInput()"
+           style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <i class="bi bi-pencil-fill"></i>
+      </div>
+    </div>
+
+    <!-- Form for uploading -->
+    <form id="uploadForm" method="POST" enctype="multipart/form-data"
+          action="{{ url_for('profile.upload_profile_picture') }}">
+      <input type="file" id="profileUpload" name="profile_picture" style="display:none;"
+             onchange="document.getElementById('uploadForm').submit();">
+    </form>
+
+    {% if error %}
+      <p class="text-danger mt-2">{{ error }}</p>
+    {% elif success %}
+      <p class="text-success mt-2">{{ success }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function triggerFileInput() {
+    document.getElementById('profileUpload').click();
+  }
+</script>

@@ -5,11 +5,12 @@ from itsdangerous import URLSafeTimedSerializer
 from .profile_utils import create_empty_profile_if_missing
 
 class User(UserMixin):
-    def __init__(self, id, username, email, role='basic'):
+    def __init__(self, id, username, email, role='basic', profile_picture=None,):
         self.id = id #Flask-Login uses this as user_id
         self.username = username
         self.email = email
         self.role = role
+        self.profile_picture = profile_picture
 
 # Used during registration to insert new user into the database
 def insert_user(username, email, password, role='basic'):
@@ -68,7 +69,12 @@ def get_user(user_id):
     conn.close()
 
     if user:
-        return User(id=user['id'], username=user['username'], email=user['email'], role=user.get('role', 'basic'))
+        return User(id=user['id'],
+                    username=user['username'],
+                    email=user['email'],
+                    role=user.get('role', 'basic'),
+                    profile_picture=user.get('profile_picture')
+        )
     return None
 
 # Used for login authentication (typically using username + password)
@@ -84,7 +90,12 @@ def get_user_by_username(username):
     conn.close()
 
     if user:
-        return User(id=user['id'], username=user['username'], email=user['email'], role=user.get('role', 'basic'))
+        return User(id=user['id'],
+                    username=user['username'],
+                    email=user['email'],
+                    role=user.get('role', 'basic'),
+                    profile_picture=user.get('profile_picture')
+    )
     return None
 
 def get_user_by_email(email):
