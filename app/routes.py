@@ -177,18 +177,32 @@ def portal():
 
     role = getattr(current_user, 'role', 'basic')
 
+    if role in ['admin']:
+        modules.append('manage_role')
     if role in ['admin', 'support']:
         modules.append('troubleshooting')
     if role in ['admin', 'hr', 'support']:
         modules.append('inventory')
     if role in ['admin', 'hr', 'support']:
-        modules.append('eip')  # Only these roles can see EIP
+        modules.append('eip')
 
     modules.append('profile')  # Everyone can see their own profile
 
     welcome_message = f"Welcome back, {current_user.username}!"
 
     return render_template('portal.html', modules=modules, welcome_message=welcome_message)
+
+@bp.route('/manage-role')
+@login_required
+@roles_required('admin')
+def manage_role():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT id, username, email, role FROM users")
+    users = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('manage_role.html', users=users)
 
 @bp.route('/eip')
 @login_required
