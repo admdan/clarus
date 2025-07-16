@@ -1,0 +1,28 @@
+<tr id="user-row-{{ user.id }}">
+  <td>
+    {% if user.role == 'admin' %}
+      <span class="badge bg-danger">Admin</span>
+    {% elif user.role == 'hr' %}
+      <span class="badge bg-warning text-dark">HR</span>
+    {% elif user.role == 'support' %}
+      <span class="badge bg-primary">Support</span>
+    {% else %}
+      <span class="badge bg-secondary">Basic</span>
+    {% endif %}
+  </td>
+  <td>{{ user.username }}</td>
+  <td>{{ user.email }}</td>
+  <td>
+    <form hx-post="{{ url_for('role.update_role', user_id=user.id) }}"
+          hx-target="closest tr"
+          hx-swap="outerHTML">
+      <select name="role" class="form-select form-select-sm d-inline w-auto">
+        <option value="basic" {% if user.role == 'basic' %}selected{% endif %}>Basic</option>
+        <option value="support" {% if user.role == 'support' %}selected{% endif %}>Support</option>
+        <option value="hr" {% if user.role == 'hr' %}selected{% endif %}>HR</option>
+        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+      </select>
+      <button type="submit" class="btn btn-sm btn-primary">Save</button>
+    </form>
+  </td>
+</tr>
