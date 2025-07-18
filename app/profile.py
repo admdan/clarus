@@ -23,13 +23,19 @@ ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
 
+def get_target_user_id():
+    # Returns the user ID being viewed or edited, ensuring role-based access control.
+    user_id = request.args.get('user_id', type=int) or current_user.id
+    if user_id != current_user.id and current_user.role not in ['admin', 'hr', 'support']:
+        abort(403)
+    return user_id
+
 @profile_bp.route('/')
 @login_required
 def view_profile():
-    # Ensure the user profile records exist
-    create_empty_profile_if_missing(current_user.id)
-
-    profile_data = get_full_profile(current_user.id)
+    user_id = get_target_user_id()
+    create_empty_profile_if_missing(user_id)
+    profile_data = get_full_profile(user_id)
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -38,103 +44,82 @@ def view_profile():
         SELECT * FROM assets
         WHERE assigned_to = %s
         ORDER BY asset_id DESC
-    ''', (current_user.id,))
+    ''', (user_id,))
     assigned_assets = cursor.fetchall()
 
+    cursor.execute("SELECT email, role, username FROM users WHERE id = %s", (user_id,))
+    user_account = cursor.fetchone()
     cursor.close()
     conn.close()
 
-    return render_template('profile.html', assigned_assets=assigned_assets, profile=profile_data)
+    return render_template('profile.html', assigned_assets=assigned_assets, profile=profile_data, user_id=user_id, viewed_user_email=user_account['email'],
+    viewed_user_role=user_account['role'])
 
 def get_full_profile(user_id):
     conn = get_db_connection()
+    profile = {}
+    with conn.cursor(dictionary=True) as cursor:
+        cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
+        profile['basic'] = cursor.fetchone()
 
-    cursor1 = conn.cursor(dictionary=True)
-    cursor1.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
-    basic = cursor1.fetchone()
-    cursor1.close()
+        cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
+        profile['pii'] = cursor.fetchone()
 
-    cursor2 = conn.cursor(dictionary=True)
-    cursor2.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
-    pii = cursor2.fetchone()
-    cursor2.close()
+        cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
+        profile['employment'] = cursor.fetchone()
 
-    cursor3 = conn.cursor(dictionary=True)
-    cursor3.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
-    employment = cursor3.fetchone()
-    cursor3.close()
+        cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
+        profile['bank'] = cursor.fetchone()
 
-    cursor4 = conn.cursor(dictionary=True)
-    cursor4.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
-    bank = cursor4.fetchone()
-    cursor4.close()
+        cursor.execute("SELECT * FROM user_family WHERE user_id = %s", (user_id,))
+        profile['family'] = cursor.fetchone()
 
-    cursor5 = conn.cursor(dictionary=True)
-    cursor5.execute("SELECT * FROM user_family WHERE user_id = %s", (user_id,))
-    family = cursor5.fetchone()
-    cursor5.close()
+        cursor.execute("SELECT * FROM user_spouses WHERE user_id = %s", (user_id,))
+        profile['spouses'] = cursor.fetchall()
 
-    cursor6 = conn.cursor(dictionary=True)
-    cursor6.execute("SELECT * FROM user_spouses WHERE user_id = %s", (user_id,))
-    spouses = cursor6.fetchall()
-    cursor6.close()
+        cursor.execute("SELECT * FROM user_dependents WHERE user_id = %s", (user_id,))
+        profile['dependents'] = cursor.fetchall()
 
-    cursor7 = conn.cursor(dictionary=True)
-    cursor7.execute("SELECT * FROM user_dependents WHERE user_id = %s", (user_id,))
-    dependents = cursor7.fetchall()
-    cursor7.close()
+        cursor.execute("SELECT * FROM user_vehicles WHERE user_id = %s", (user_id,))
+        profile['vehicles'] = cursor.fetchall()
 
-    cursor8 = conn.cursor(dictionary=True)
-    cursor8.execute("SELECT * FROM user_vehicles WHERE user_id = %s", (user_id,))
-    vehicles = cursor8.fetchall()
-    cursor8.close()
+        cursor.execute("SELECT * FROM user_documents WHERE user_id = %s", (user_id,))
+        profile['documents'] = cursor.fetchall()
 
-    cursor9 = conn.cursor(dictionary=True)
-    cursor9.execute("SELECT * FROM user_documents WHERE user_id = %s", (user_id,))
-    documents = cursor9.fetchall()
-    cursor9.close()
+        cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        profile['username'] = cursor.fetchone()['username']
 
     conn.close()
-
-    return {
-        'basic': basic,
-        'pii': pii,
-        'employment': employment,
-        'bank': bank,
-        'family': family,
-        'spouses': spouses,
-        'dependents': dependents,
-        'vehicles': vehicles,
-        'documents': documents
-    }
+    return profile
 
 @profile_bp.route('/basic')
 @login_required
 def basic_info():
-    # Fetch user profile data
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
     profile = cursor.fetchone()
     cursor.close()
     conn.close()
-    return render_template('profile_sections/basic_info.html', profile=profile)
+    return render_template('profile_sections/basic_info.html', profile=profile, user_id=user_id)
 
 @profile_bp.route('/edit_basic_info', methods=['GET'])
 @login_required
 def edit_basic_info():
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
     profile_data = cursor.fetchone()
     cursor.close()
     conn.close()
-    return render_template('profile_sections/edit_basic_info.html', profile=profile_data)
+    return render_template('profile_sections/edit_basic_info.html', profile=profile_data, user_id=user_id)
 
 @profile_bp.route('/update_basic_info', methods=['POST'])
 @login_required
 def update_basic_info():
-    # Collect basic info form data
+    user_id = get_target_user_id()
     form_data = {
         'full_name': request.form.get('full_name') or None,
         'date_of_birth': request.form.get('date_of_birth') or None,
@@ -142,39 +127,38 @@ def update_basic_info():
         'contact_number': request.form.get('contact_number') or None,
         'address': request.form.get('address') or None,
     }
-    update_user_profile(current_user.id, form_data)
-    updated_profile = get_user_profile(current_user.id)
-    return render_template('profile_sections/basic_info.html', profile=updated_profile)
+    update_user_profile(user_id, form_data)
+    updated_profile = get_user_profile(user_id)
+    return render_template('profile_sections/basic_info.html', profile=updated_profile, user_id=user_id)
 
 @profile_bp.route('/pii')
 @login_required
 def pii_info():
-    # Fetch user PII data
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
     pii = cursor.fetchone()
     cursor.close()
     conn.close()
-
-    return render_template('profile_sections/pii_info.html', pii=pii)
+    return render_template('profile_sections/pii_info.html', pii=pii, user_id=user_id)
 
 @profile_bp.route('/edit_pii_info', methods=['GET'])
 @login_required
 def edit_pii_info():
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
     pii_data = cursor.fetchone()
     cursor.close()
     conn.close()
-
-    return render_template('profile_sections/edit_pii_info.html', pii=pii_data)
+    return render_template('profile_sections/edit_pii_info.html', pii=pii_data, user_id=user_id)
 
 @profile_bp.route('/update_pii_info', methods=['POST'])
 @login_required
 def update_pii_info():
-    # Collect PII form data
+    user_id = get_target_user_id()
     form_data = {
         'id_type': request.form.get('id_type') or None,
         'id_number': request.form.get('id_number') or None,
@@ -183,41 +167,38 @@ def update_pii_info():
         'emergency_contact_number': request.form.get('emergency_contact_number') or None,
         'emergency_contact_address': request.form.get('emergency_contact_address') or None,
     }
-    # Update the user_pii table
-    update_user_pii(current_user.id, form_data)
-    updated_pii = get_user_pii(current_user.id)
-
-    return render_template('profile_sections/pii_info.html', pii=updated_pii)
+    update_user_pii(user_id, form_data)
+    updated_pii = get_user_pii(user_id)
+    return render_template('profile_sections/pii_info.html', pii=updated_pii, user_id=user_id)
 
 @profile_bp.route('/employment')
 @login_required
 def employment_info():
-    # Fetch employment info
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
     employment = cursor.fetchone()
     cursor.close()
     conn.close()
-
-    return render_template('profile_sections/employment_info.html', employment=employment)
+    return render_template('profile_sections/employment_info.html', employment=employment, user_id=user_id)
 
 @profile_bp.route('/edit_employment_info', methods=['GET'])
 @login_required
 def edit_employment_info():
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
     employment_data = cursor.fetchone()
     cursor.close()
     conn.close()
-
-    return render_template('profile_sections/edit_employment_info.html', employment=employment_data)
+    return render_template('profile_sections/edit_employment_info.html', employment=employment_data, user_id=user_id)
 
 @profile_bp.route('/update_employment_info', methods=['POST'])
 @login_required
 def update_employment_info():
-    # Collect employment data
+    user_id = get_target_user_id()
     form_data = {
         'job_title': request.form.get('job_title') or None,
         'department': request.form.get('department') or None,
@@ -226,61 +207,58 @@ def update_employment_info():
         'employment_status': request.form.get('employment_status') or None,
         'supervisor': request.form.get('supervisor') or None,
     }
-    update_user_employment(current_user.id, form_data)
-    updated_employment = get_user_employment(current_user.id)
-
-    return render_template('profile_sections/employment_info.html', employment=updated_employment)
+    update_user_employment(user_id, form_data)
+    updated_employment = get_user_employment(user_id)
+    return render_template('profile_sections/employment_info.html', employment=updated_employment, user_id=user_id)
 
 @profile_bp.route('/banking')
 @login_required
 def banking_info():
-    # Fetch banking info
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
     banking = cursor.fetchone()
     cursor.close()
     conn.close()
-
-    return render_template('profile_sections/banking_info.html', banking=banking)
+    return render_template('profile_sections/banking_info.html', banking=banking, user_id=user_id)
 
 @profile_bp.route('/edit_banking_info', methods=['GET'])
 @login_required
 def edit_banking_info():
+    user_id = get_target_user_id()
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (current_user.id,))
+    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
     banking_data = cursor.fetchone()
     cursor.close()
     conn.close()
-
-    return render_template('profile_sections/edit_banking_info.html', banking=banking_data)
+    return render_template('profile_sections/edit_banking_info.html', banking=banking_data, user_id=user_id)
 
 @profile_bp.route('/update_banking_info', methods=['POST'])
 @login_required
 def update_banking_info():
-    # Collect banking data
+    user_id = get_target_user_id()
     form_data = {
         'bank_name': request.form.get('bank_name') or None,
         'bank_account_number': request.form.get('bank_account_number') or None,
         'account_holder_name': request.form.get('account_holder_name') or None,
     }
-    update_user_banking(current_user.id, form_data)
-    updated_banking = get_user_banking(current_user.id)
-
-    return render_template('profile_sections/banking_info.html', banking=updated_banking)
+    update_user_banking(user_id, form_data)
+    updated_banking = get_user_banking(user_id)
+    return render_template('profile_sections/banking_info.html', banking=updated_banking, user_id=user_id)
 
 @profile_bp.route('/vehicles')
 @login_required
 def vehicles_info():
-    # Fetch vehicle info
-    vehicles=get_user_vehicles(current_user.id)
-    return render_template('profile_sections/vehicles_info.html', vehicles=vehicles)
-
+    user_id = get_target_user_id()
+    vehicles = get_user_vehicles(user_id)
+    return render_template('profile_sections/vehicles_info.html', vehicles=vehicles, user_id=user_id)
 
 @profile_bp.route('/add_vehicle_info', methods=['GET', 'POST'])
 @login_required
 def add_vehicles_info():
+    user_id = get_target_user_id()
     if request.method == 'POST':
         form_data = {
             'vehicle_type': request.form.get('vehicle_type') or None,
@@ -291,17 +269,17 @@ def add_vehicles_info():
             'color': request.form.get('color') or None,
             'parking_permit_id': request.form.get('parking_permit_id') or None
         }
-        add_user_vehicle(current_user.id, form_data)
-        vehicles = get_user_vehicles(current_user.id)
-        return render_template('profile_sections/vehicles_info.html', vehicles=vehicles)
-
-    return render_template('profile_sections/edit_vehicles_info.html', vehicle=None)
+        add_user_vehicle(user_id, form_data)
+        vehicles = get_user_vehicles(user_id)
+        return render_template('profile_sections/vehicles_info.html', vehicles=vehicles, user_id=user_id)
+    return render_template('profile_sections/edit_vehicles_info.html', vehicle=None, user_id=user_id)
 
 @profile_bp.route('/edit_vehicles_info/<int:vehicle_id>', methods=['GET', 'POST'])
 @login_required
 def edit_vehicles_info(vehicle_id):
+    user_id = get_target_user_id()
     vehicle = get_vehicle_by_id(vehicle_id)
-    if not vehicle or vehicle['user_id'] != current_user.id:
+    if not vehicle or (vehicle['user_id'] != user_id and current_user.role not in ['admin', 'hr', 'support']):
         abort(403)
 
     if request.method == 'POST':
@@ -315,60 +293,65 @@ def edit_vehicles_info(vehicle_id):
             'parking_permit_id': request.form.get('parking_permit_id') or None
         }
         update_user_vehicle(vehicle_id, form_data)
-        vehicles = get_user_vehicles(current_user.id)
-        return render_template('profile_sections/vehicles_info.html', vehicles=vehicles)
+        vehicles = get_user_vehicles(user_id)
+        return render_template('profile_sections/vehicles_info.html', vehicles=vehicles, user_id=user_id)
 
-    return render_template('profile_sections/edit_vehicles_info.html', vehicle=vehicle)
+    return render_template('profile_sections/edit_vehicles_info.html', vehicle=vehicle, user_id=user_id)
 
 @profile_bp.route('/delete_vehicle_info/<int:vehicle_id>', methods=['POST'])
 @login_required
 def delete_vehicles_info(vehicle_id):
+    user_id = get_target_user_id()
     vehicle = get_vehicle_by_id(vehicle_id)
-    if not vehicle or vehicle['user_id'] != current_user.id:
+    if not vehicle or (vehicle['user_id'] != user_id and current_user.role not in ['admin', 'hr', 'support']):
         abort(403)
 
     delete_user_vehicle(vehicle_id)
-    vehicles = get_user_vehicles(current_user.id)
-
-    return render_template('profile_sections/vehicles_info.html', vehicles=vehicles)
+    vehicles = get_user_vehicles(user_id)
+    return render_template('profile_sections/vehicles_info.html', vehicles=vehicles, user_id=user_id)
 
 @profile_bp.route('/family')
 @login_required
 def family_info():
-    family = get_user_family(current_user.id)
-    spouses = get_user_spouses(current_user.id)
-    dependents = get_user_dependents(current_user.id)
+    user_id = get_target_user_id()
+    family = get_user_family(user_id)
+    spouses = get_user_spouses(user_id)
+    dependents = get_user_dependents(user_id)
     return render_template(
         'profile_sections/family_info.html',
         family=family,
         spouses=spouses,
-        dependents=dependents
+        dependents=dependents,
+        user_id=user_id
     )
-
 
 @profile_bp.route('/edit_family_info', methods=['GET'])
 @login_required
 def edit_family_info():
-    family_data = get_user_family(current_user.id)
-    return render_template('profile_sections/edit_family_info.html', family=family_data)
+    user_id = get_target_user_id()
+    family_data = get_user_family(user_id)
+    return render_template('profile_sections/edit_family_info.html', family=family_data, user_id=user_id)
 
 @profile_bp.route('/update_family_info', methods=['POST'])
 @login_required
 def update_family_info():
+    user_id = get_target_user_id()
     form_data = {
         'marital_status': request.form.get('marital_status') or None,
     }
-    update_user_family(current_user.id, form_data)
+    update_user_family(user_id, form_data)
     family_data = {
-        'family': get_user_family(current_user.id),
-        'spouses': get_user_spouses(current_user.id),
-        'dependents': get_user_dependents(current_user.id)
+        'family': get_user_family(user_id),
+        'spouses': get_user_spouses(user_id),
+        'dependents': get_user_dependents(user_id),
+        'user_id': user_id
     }
     return render_template('profile_sections/family_info.html', **family_data)
 
 @profile_bp.route('/add_spouse_info', methods=['GET', 'POST'])
 @login_required
 def add_spouse_info():
+    user_id = get_target_user_id()
     if request.method == 'POST':
         form_data = {
             'spouse_name': request.form.get('spouse_name'),
@@ -376,18 +359,20 @@ def add_spouse_info():
             'spouse_id_number': request.form.get('spouse_id_number'),
             'spouse_address': request.form.get('spouse_address')
         }
-        add_user_spouse(current_user.id, form_data)
+        add_user_spouse(user_id, form_data)
         family_data = {
-            'family': get_user_family(current_user.id),
-            'spouses': get_user_spouses(current_user.id),
-            'dependents': get_user_dependents(current_user.id)
+            'family': get_user_family(user_id),
+            'spouses': get_user_spouses(user_id),
+            'dependents': get_user_dependents(user_id),
+            'user_id': user_id
         }
         return render_template('profile_sections/family_info.html', **family_data)
-    return render_template('/profile_sections/edit_spouse_info.html', spouse=None)
+    return render_template('profile_sections/edit_spouse_info.html', spouse=None, user_id=user_id)
 
 @profile_bp.route('/edit_spouse_info/<int:spouse_id>', methods=['GET', 'POST'])
 @login_required
 def edit_spouse_info(spouse_id):
+    user_id = get_target_user_id()
     if request.method == 'POST':
         form_data = {
             'spouse_name': request.form.get('spouse_name'),
@@ -397,29 +382,34 @@ def edit_spouse_info(spouse_id):
         }
         update_user_spouse(spouse_id, form_data)
         family_data = {
-            'family': get_user_family(current_user.id),
-            'spouses': get_user_spouses(current_user.id),
-            'dependents': get_user_dependents(current_user.id)
+            'family': get_user_family(user_id),
+            'spouses': get_user_spouses(user_id),
+            'dependents': get_user_dependents(user_id),
+            'user_id': user_id
         }
         return render_template('profile_sections/family_info.html', **family_data)
-    spouses = get_user_spouses(current_user.id)
+
+    spouses = get_user_spouses(user_id)
     spouse = next((s for s in spouses if s['id'] == spouse_id), None)
-    return render_template('profile_sections/edit_spouse_info.html', spouse=spouse)
+    return render_template('profile_sections/edit_spouse_info.html', spouse=spouse, user_id=user_id)
 
 @profile_bp.route('/delete_spouse_info/<int:spouse_id>', methods=['POST'])
 @login_required
 def delete_spouse_info(spouse_id):
+    user_id = get_target_user_id()
     delete_user_spouse(spouse_id)
     family_data = {
-        'family': get_user_family(current_user.id),
-        'spouses': get_user_spouses(current_user.id),
-        'dependents': get_user_dependents(current_user.id)
+        'family': get_user_family(user_id),
+        'spouses': get_user_spouses(user_id),
+        'dependents': get_user_dependents(user_id),
+        'user_id': user_id
     }
     return render_template('profile_sections/family_info.html', **family_data)
 
 @profile_bp.route('/add_dependent_info', methods=['GET', 'POST'])
 @login_required
 def add_dependent_info():
+    user_id = get_target_user_id()
     if request.method == 'POST':
         form_data = {
             'dependent_name': request.form.get('dependent_name'),
@@ -427,18 +417,20 @@ def add_dependent_info():
             'dependent_birthdate': request.form.get('dependent_birthdate'),
             'dependent_notes': request.form.get('dependent_notes')
         }
-        add_user_dependent(current_user.id, form_data)
+        add_user_dependent(user_id, form_data)
         family_data = {
-            'family': get_user_family(current_user.id),
-            'spouses': get_user_spouses(current_user.id),
-            'dependents': get_user_dependents(current_user.id)
+            'family': get_user_family(user_id),
+            'spouses': get_user_spouses(user_id),
+            'dependents': get_user_dependents(user_id),
+            'user_id': user_id
         }
         return render_template('profile_sections/family_info.html', **family_data)
-    return render_template('profile_sections/edit_dependent_info.html', dependent=None)
+    return render_template('profile_sections/edit_dependent_info.html', dependent=None, user_id=user_id)
 
 @profile_bp.route('/edit_dependent_info/<int:dependent_id>', methods=['GET', 'POST'])
 @login_required
 def edit_dependent_info(dependent_id):
+    user_id = get_target_user_id()
     if request.method == 'POST':
         form_data = {
             'dependent_name': request.form.get('dependent_name'),
@@ -448,24 +440,27 @@ def edit_dependent_info(dependent_id):
         }
         update_user_dependent(dependent_id, form_data)
         family_data = {
-            'family': get_user_family(current_user.id),
-            'spouses': get_user_spouses(current_user.id),
-            'dependents': get_user_dependents(current_user.id)
+            'family': get_user_family(user_id),
+            'spouses': get_user_spouses(user_id),
+            'dependents': get_user_dependents(user_id),
+            'user_id': user_id
         }
         return render_template('profile_sections/family_info.html', **family_data)
 
-    dependents = get_user_dependents(current_user.id)
+    dependents = get_user_dependents(user_id)
     dependent = next((d for d in dependents if d['id'] == dependent_id), None)
-    return render_template('profile_sections/edit_dependent_info.html', dependent=dependent)
+    return render_template('profile_sections/edit_dependent_info.html', dependent=dependent, user_id=user_id)
 
 @profile_bp.route('/delete_dependent_info/<int:dependent_id>', methods=['POST'])
 @login_required
 def delete_dependent_info(dependent_id):
+    user_id = get_target_user_id()
     delete_user_dependent(dependent_id)
     family_data = {
-        'family': get_user_family(current_user.id),
-        'spouses': get_user_spouses(current_user.id),
-        'dependents': get_user_dependents(current_user.id)
+        'family': get_user_family(user_id),
+        'spouses': get_user_spouses(user_id),
+        'dependents': get_user_dependents(user_id),
+        'user_id': user_id
     }
     return render_template('profile_sections/family_info.html', **family_data)
 
@@ -481,12 +476,17 @@ def is_file_safe(filepath):
 @profile_bp.route('/documents')
 @login_required
 def document_info():
-    documents = get_user_documents(current_user.id)
-    return render_template('/profile_sections/document_info.html', documents=documents)
+    user_id = get_target_user_id()
+    documents = get_user_documents(user_id)
+    return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
 
 @profile_bp.route('/upload_documents', methods=['POST'])
 @login_required
 def upload_documents():
+    user_id = get_target_user_id()
+    if user_id != current_user.id and current_user.role not in ['admin', 'hr', 'support']:
+        abort(403)
+
     file = request.files.get('document')
     doc_type = request.form.get('document_type')
     display_name = request.form.get('display_name')
@@ -498,47 +498,39 @@ def upload_documents():
     if ext not in ALLOWED_EXTENSIONS:
         return "Invalid file type", 400
 
-    # Prepare filename
     safe_doc_type = doc_type.replace(" ", "_")
-    unique_filename = f"user{current_user.id}-{safe_doc_type}-{uuid.uuid4().hex[:8]}.{ext}"
-    user_folder = os.path.join(UPLOAD_FOLDER, f"user_{current_user.id}")
+    unique_filename = f"user{user_id}-{safe_doc_type}-{uuid.uuid4().hex[:8]}.{ext}"
+    user_folder = os.path.join(UPLOAD_FOLDER, f"user_{user_id}")
     os.makedirs(user_folder, exist_ok=True)
 
-    # Generate a full path but don't save yet
-    file_path = f"user_{current_user.id}/{unique_filename}"  # always use forward slash in URLs
+    file_path = f"user_{user_id}/{unique_filename}"
     save_path = os.path.join(user_folder, unique_filename)
 
-    # Read a file into memory for scanning and validaton
     file_contents = file.read()
 
-    # Check MIME type from in-memory content using `mimetypes` needs a fallback
     guessed_type, _ = mimetypes.guess_type(file.filename)
     if guessed_type not in ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']:
         return "Invalid MIME type.", 400
 
-    # Write to disk temporarily (needed for virus scan)
     with open(save_path, 'wb') as f:
         f.write(file_contents)
 
-    # Virus scan the saved file
     if not is_file_safe(save_path):
         os.remove(save_path)
         return "Upload blocked: virus detected.", 400
-    else:
-        print("File is safe.")
 
-        # File is valid and safe, save reference
-        add_user_document(current_user.id, doc_type, file_path, display_name=display_name)
-        documents = get_user_documents(current_user.id)
-        return render_template('profile_sections/document_info.html', documents=documents)
+    add_user_document(user_id, doc_type, file_path, display_name=display_name)
+    documents = get_user_documents(user_id)
+    return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
 
 @profile_bp.route('/delete_document/<int:doc_id>', methods=['POST'])
 @login_required
 def delete_document(doc_id):
+    user_id = get_target_user_id()
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-
-    cursor.execute("SELECT * FROM user_documents WHERE id = %s AND user_id = %s", (doc_id, current_user.id))
+    cursor.execute("SELECT * FROM user_documents WHERE id = %s AND user_id = %s", (doc_id, user_id))
     doc = cursor.fetchone()
 
     if not doc:
@@ -558,37 +550,49 @@ def delete_document(doc_id):
     cursor.close()
     conn.close()
 
-    documents = get_user_documents(current_user.id)
-    return render_template('profile_sections/document_info.html', documents=documents)
+    documents = get_user_documents(user_id)
+    return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
 
 @profile_bp.route('/profile_picture')
 @login_required
 def profile_picture_info():
-    folder_path = os.path.join(current_app.root_path, 'static', 'uploads', f"user_{current_user.id}","profile_pictures")
+    user_id = get_target_user_id()
+    folder_path = os.path.join(current_app.root_path, 'static', 'uploads', f"user_{user_id}", "profile_pictures")
     profile_picture_filename = None
 
     if os.path.exists(folder_path):
-        files = sorted(os.listdir(folder_path), key=lambda x: os.path.getmtime(os.path.join(folder_path, x)),
-                       reverse=True)
+        files = sorted(os.listdir(folder_path), key=lambda x: os.path.getmtime(os.path.join(folder_path, x)), reverse=True)
         if files:
-            profile_picture_filename = f"user_{current_user.id}/profile_pictures/{files[0]}"
+            profile_picture_filename = f"user_{user_id}/profile_pictures/{files[0]}"
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
 
     timestamp = int(datetime.now(timezone.utc).timestamp())
     return render_template('profile_sections/profile_picture.html',
                            profile_picture_filename=profile_picture_filename,
-                           timestamp=timestamp)
+                           timestamp=timestamp,
+                           user_id=user_id,
+                           username=row['username'] if row else 'User')
 
 @profile_bp.route('/upload_profile_picture', methods=['POST'])
 @login_required
 def upload_profile_picture():
+    user_id = get_target_user_id()
+    if user_id != current_user.id and current_user.role not in ['admin', 'hr', 'support']:
+        abort(403)
+
     file = request.files.get('profile_picture')
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
-        folder_path = os.path.join(current_app.root_path,'static', 'uploads', f"user_{current_user.id}","profile_pictures")
+        folder_path = os.path.join(current_app.root_path, 'static', 'uploads', f"user_{user_id}", "profile_pictures")
         os.makedirs(folder_path, exist_ok=True)
 
-        # Clear existing profile pictures
         for f in os.listdir(folder_path):
             try:
                 os.remove(os.path.join(folder_path, f))
@@ -599,8 +603,37 @@ def upload_profile_picture():
         file.save(file_path)
 
         timestamp = int(datetime.now(timezone.utc).timestamp())
-        print("profile_picture_filename =", current_user.profile_picture)
-        return render_template('profile_sections/profile_picture.html', profile_picture_filename=unique_filename, timestamp=timestamp)  # Pass timestamp
+        return render_template('profile_sections/profile_picture.html',
+                               profile_picture_filename=unique_filename,
+                               timestamp=timestamp,
+                               user_id=user_id)
 
     error = "Invalid file or file type."
-    return render_template('profile_sections/profile_picture.html', error=error)
+    return render_template('profile_sections/profile_picture.html', error=error, user_id=user_id)
+
+@profile_bp.route('/request_change', methods=['POST'])
+@login_required
+def request_change():
+    user_id = get_target_user_id()
+    if user_id != current_user.id:
+        abort(403)
+
+    data = request.get_json()
+    field = data.get('field')
+    new_value = data.get('new_value', '')
+    note = data.get('note', '')
+
+    if not field:
+        return {"error": "Missing field"}, 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO change_requests (user_id, field_requested, new_value, note, timestamp)
+        VALUES (%s, %s, %s, %s, NOW())
+    ''', (user_id, field, new_value, note))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return {"status": "ok"}, 200

@@ -1,17 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Employee Identity Portal</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Employee Identity Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    td, th {
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+  </style>
 </head>
 <body class="bg-light">
-    <div class="container py-5">
-        <h2 class="mb-4">Employee Identity Portal (EIP)</h2>
-        <p>This section will let you view and manage employee identity data.</p>
-        <p class="text-muted">Feature coming soon.</p>
-        <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-primary mt-3">Back to Portal</a>
+<div class="container py-5">
+  <h2 class="mb-4">Employee Identity Portal (EIP)</h2>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-4">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <div class="card shadow-sm">
+    <div class="card-header">
+      <h5 class="mb-0">Field Change Requests</h5>
     </div>
+    <div class="card-body p-0">
+      {% if change_requests %}
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">User</th>
+              <th scope="col">Email</th>
+              <th scope="col">Field</th>
+              <th scope="col">Requested Value</th>
+              <th scope="col">Note</th>
+              <th scope="col">Timestamp</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+              <th scope="col">Resolved By</th>
+              <th scope="col">Resolved At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in change_requests %}
+            <tr>
+              <td>
+                <a href="{{ url_for('profile.view_profile', user_id=req.user_id) }}" class="btn btn-sm btn-outline-primary">
+                  {{ req.username }}
+                </a>
+              </td>
+              <td>{{ req.email }}</td>
+              <td>{{ req.field_requested }}</td>
+              <td>{{ req.new_value }}</td>
+              <td>{{ req.note or '-' }}</td>
+              <td>{{ req.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+              <td>
+                {% if req.status == 'Pending' %}
+                  <span class="badge bg-warning text-dark">Pending</span>
+                {% elif req.status == 'Approved' %}
+                  <span class="badge bg-success">Approved</span>
+                {% elif req.status == 'Declined' %}
+                  <span class="badge bg-danger">Declined</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if req.status == 'Pending' %}
+                  <form action="{{ url_for('eip.approve_change_request', request_id=req.id) }}" method="POST" class="d-inline">
+                    <button class="btn btn-sm btn-success">Approve</button>
+                  </form>
+                  <form action="{{ url_for('eip.decline_change_request', request_id=req.id) }}" method="POST" class="d-inline ms-2"
+                        onsubmit="return confirm('Are you sure you want to decline this request?');">
+                    <button class="btn btn-sm btn-danger">Decline</button>
+                  </form>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if req.status != 'Pending' %}
+                  <span class="text-muted">{{ req.resolved_by or '—' }}</span>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if req.resolved_at %}
+                  {{ req.resolved_at.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="p-3 text-muted">No change requests found.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-primary mt-4">Back to Portal</a>
+</div>
 </body>
 </html>
-

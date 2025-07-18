@@ -2,7 +2,7 @@
 <html lang="en" data-bs-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <title>{{ current_user.username }}'s Profile | Clarus</title>
+  <title>{{ profile.basic.full_name or 'User' }}'s Profile | Clarus</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
@@ -126,17 +126,17 @@
   <!-- Profile Card Fusion -->
   <div class="profile-card mb-4">
     <div class="profile-left" id="profile-picture-section"
-         hx-get="{{ url_for('profile.profile_picture_info') }}"
+         hx-get="{{ url_for('profile.profile_picture_info') }}?user_id={{ user_id }}"
          hx-trigger="load"
          hx-target="this"
          hx-swap="outerHTML">
       Loading profile picture...
     </div>
     <div class="profile-right">
-      <h4 class="fw-bold mb-3">{{ current_user.username }}</h4>
-      <p class="mb-1"><span class="text-muted">Email:</span> {{ current_user.email }}</p>
-      <p><span class="text-muted">Role:</span> {{ current_user.role }}</p>
-    </div>
+      <h4 class="fw-bold mb-3">{{ profile.basic.full_name or profile.basic.username }}</h4>
+      <p class="mb-1"><span class="text-muted">Email:</span> {{ viewed_user_email }}</p>
+      <p><span class="text-muted">Role:</span> {{ viewed_user_role }}</p>
+      </div>
   </div>
 
   <!-- Tabs -->
@@ -156,31 +156,31 @@
   <!-- Tab Content -->
   <div class="tab-content">
     <div class="tab-pane fade show active" id="basic" role="tabpanel"
-         data-hx-get="{{ url_for('profile.basic_info') }}"
+         data-hx-get="{{ url_for('profile.basic_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading basic info...</div>
     <div class="tab-pane fade" id="pii" role="tabpanel"
-         data-hx-get="{{ url_for('profile.pii_info') }}"
+         data-hx-get="{{ url_for('profile.pii_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading PII info...</div>
     <div class="tab-pane fade" id="employment" role="tabpanel"
-         data-hx-get="{{ url_for('profile.employment_info') }}"
+         data-hx-get="{{ url_for('profile.employment_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading employment info...</div>
     <div class="tab-pane fade" id="banking" role="tabpanel"
-         data-hx-get="{{ url_for('profile.banking_info') }}"
+         data-hx-get="{{ url_for('profile.banking_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading banking info...</div>
     <div class="tab-pane fade" id="vehicles" role="tabpanel"
-         data-hx-get="{{ url_for('profile.vehicles_info') }}"
+         data-hx-get="{{ url_for('profile.vehicles_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading vehicles info...</div>
     <div class="tab-pane fade" id="family" role="tabpanel"
-         data-hx-get="{{ url_for('profile.family_info') }}"
+         data-hx-get="{{ url_for('profile.family_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading family info...</div>
     <div class="tab-pane fade" id="documents" role="tabpanel"
-         data-hx-get="{{ url_for('profile.document_info') }}"
+         data-hx-get="{{ url_for('profile.document_info') }}?user_id={{ user_id }}"
          data-hx-trigger="revealed"
          data-hx-swap="innerHTML">Loading document upload section...</div>
     <div class="tab-pane fade" id="devices" role="tabpanel">
@@ -217,6 +217,60 @@
     </div>
   </div>
 </div>
+<!-- Change Request Modal (Global) -->
+<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" onsubmit="submitChangeRequest(event)">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="changeField" />
+        <div class="mb-3">
+          <label class="form-label">New Value</label>
+          <input type="text" class="form-control" id="newValue" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Reason (optional)</label>
+          <textarea class="form-control" id="changeNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function setChangeField(field) {
+    document.getElementById('changeField').value = field;
+    document.getElementById('newValue').value = '';
+    document.getElementById('changeNote').value = '';
+  }
+
+  function submitChangeRequest(e) {
+    e.preventDefault();
+    const field = document.getElementById('changeField').value;
+    const newValue = document.getElementById('newValue').value;
+    const note = document.getElementById('changeNote').value;
+
+    fetch("/profile/request_change", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field, new_value: newValue, note })
+    }).then(res => {
+      if (res.ok) {
+        alert("Change request submitted.");
+        bootstrap.Modal.getInstance(document.getElementById('changeModal')).hide();
+      } else {
+        alert("Error submitting request.");
+      }
+    });
+  }
+</script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>
@@ -237,6 +291,22 @@
     icon.className = next === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
     localStorage.setItem('theme', next);
   }
+
+  function requestChange(field) {
+    fetch("/profile/request_change", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ field })
+    })
+    .then(res => {
+      if (res.ok) {
+        alert("Request submitted. Admin will review it.");
+      } else {
+        alert("Failed to submit request.");
+      }
+    });
+  }
+
 </script>
 </body>
 </html>

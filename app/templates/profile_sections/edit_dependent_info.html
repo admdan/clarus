@@ -1,31 +1,31 @@
 <section id="family-info-section">
     <div id="dependent-info-container">
         <form
-            hx-post="{{ url_for('profile.edit_dependent_info', dependent_id=dep.id) if dep else url_for('profile.add_dependent_info') }}"
+            hx-post="{{ url_for('profile.edit_dependent_info', dependent_id=dep.id) if dep else url_for('profile.add_dependent_info') }}?user_id={{ user_id }}"
             hx-target="#family-info-section"
             hx-swap="outerHTML"
-            class="mb-3 border rounded p-3 bg-light"
+            class="mb-3 border rounded p-3"
         >
             <div class="mb-2">
                 <label class="form-label">Name</label>
-                <input type="text" name="dependent_name" value="{{ dep.dependent_name if dep else '' }}" class="form-control">
+                <input type="text" name="dependent_name" value="{{ dep.dependent_name if dep else '' }}" class="form-control bg-dark-subtle">
             </div>
             <div class="mb-2">
                 <label class="form-label">Relationship</label>
-                <input type="text" name="dependent_relationship" value="{{ dep.dependent_relationship if dep else '' }}" class="form-control">
+                <input type="text" name="dependent_relationship" value="{{ dep.dependent_relationship if dep else '' }}" class="form-control bg-dark-subtle">
             </div>
             <div class="mb-2">
                 <label class="form-label">Birthdate</label>
-                <input type="date" name="dependent_birthdate" value="{{ dep.dependent_birthdate if dep else '' }}" class="form-control">
+                <input type="date" name="dependent_birthdate" value="{{ dep.dependent_birthdate if dep else '' }}" class="form-control bg-dark-subtle">
             </div>
             <div class="mb-3">
                 <label class="form-label">Notes</label>
-                <textarea name="dependent_notes" class="form-control" rows="2">{{ dep.dependent_notes if dep else '' }}</textarea>
+                <textarea name="dependent_notes" class="form-control bg-dark-subtle" rows="2">{{ dep.dependent_notes if dep else '' }}</textarea>
             </div>
             <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-sm btn-primary">Save</button>
                 <button type="button" class="btn btn-sm btn-secondary ms-2"
-                        hx-get="{{ url_for('profile.family_info') }}"
+                        hx-get="{{ url_for('profile.family_info') }}?user_id={{ user_id }}"
                         hx-target="#family-info-section"
                         hx-swap="outerHTML">
                     Cancel

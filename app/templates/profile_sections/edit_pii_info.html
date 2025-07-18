@@ -1,48 +1,134 @@
 <div id="pii-info-container">
-    <form hx-post="{{ url_for('profile.update_pii_info') }}"
-          hx-target="#pii-info-container"
-          hx-swap="innerHTML"
-          class="card shadow-sm mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Edit PII Info</h5>
-        </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <label class="form-label">ID Type</label>
-                <input type="text" class="form-control" name="id_type" value="{{ pii.id_type or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">ID Number</label>
-                <input type="text" class="form-control" name="id_number" value="{{ pii.id_number or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Citizenship</label>
-                <input type="text" class="form-control" name="citizenship" value="{{ pii.citizenship or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Emergency Contact Name</label>
-                <input type="text" class="form-control" name="emergency_contact_name" value="{{ pii.emergency_contact_name or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Emergency Contact Number</label>
-                <input type="text" class="form-control" name="emergency_contact_number" value="{{ pii.emergency_contact_number or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Emergency Contact Address</label>
-                <textarea class="form-control" name="emergency_contact_address">{{ pii.emergency_contact_address.strip() if pii.emergency_contact_address else '' }}</textarea>
-            </div>
-        </div>
-        <div class="card-footer d-flex justify-content-between">
-            <button type="submit" class="btn btn-success">Save</button>
-            <button type="button"
-                    class="btn btn-secondary"
-                    hx-get="{{ url_for('profile.pii_info') }}"
-                    hx-target="#pii-info-container"
-                    hx-swap="innerHTML">
-                Cancel
-            </button>
-        </div>
-    </form>
+  <form hx-post="{{ url_for('profile.update_pii_info') }}?user_id={{ user_id }}"
+        hx-target="#pii-info-container"
+        hx-swap="innerHTML"
+        class="card shadow-sm mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Edit PII Info</h5>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label">ID Type</label>
+        <input type="text" class="form-control bg-dark-subtle" name="id_type" value="{{ pii.id_type or '' }}" readonly>
+        <button type="button"
+                class="btn btn-sm btn-outline-danger mt-1"
+                data-bs-toggle="modal"
+                data-bs-target="#changeModal"
+                onclick="setChangeField('ID Type', 'text')">
+          Request Change
+        </button>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">ID Number</label>
+        <input type="text" class="form-control bg-dark-subtle" name="id_number" value="{{ pii.id_number or '' }}" readonly>
+        <button type="button"
+                class="btn btn-sm btn-outline-danger mt-1"
+                data-bs-toggle="modal"
+                data-bs-target="#changeModal"
+                onclick="setChangeField('ID Number', 'text')">
+          Request Change
+        </button>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Citizenship</label>
+        <input type="text" class="form-control bg-dark-subtle" name="citizenship" value="{{ pii.citizenship or '' }}" readonly>
+        <button type="button"
+                class="btn btn-sm btn-outline-danger mt-1"
+                data-bs-toggle="modal"
+                data-bs-target="#changeModal"
+                onclick="setChangeField('Citizenship', 'text')">
+          Request Change
+        </button>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Emergency Contact Name</label>
+        <input type="text" class="form-control bg-primary-subtle" name="emergency_contact_name" value="{{ pii.emergency_contact_name or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Emergency Contact Number</label>
+        <input type="text" class="form-control bg-primary-subtle" name="emergency_contact_number" value="{{ pii.emergency_contact_number or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Emergency Contact Address</label>
+        <textarea class="form-control bg-primary-subtle" name="emergency_contact_address">{{ pii.emergency_contact_address.strip() if pii.emergency_contact_address else '' }}</textarea>
+      </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+      <button type="submit" class="btn btn-success">Save</button>
+      <button type="button"
+              class="btn btn-secondary"
+              hx-get="{{ url_for('profile.pii_info') }}?user_id={{ user_id }}"
+              hx-target="#pii-info-container"
+              hx-swap="innerHTML">
+        Cancel
+      </button>
+    </div>
+  </form>
 </div>
+
+<!-- Change Request Modal -->
+<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" onsubmit="submitChangeRequest(event)">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="changeField" />
+        <div class="mb-3" id="inputGroup"></div>
+        <div class="mb-3">
+          <label class="form-label">Reason (optional)</label>
+          <textarea class="form-control" id="changeNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setChangeField(field, type = "text") {
+  document.getElementById('changeField').value = field;
+  const group = document.getElementById('inputGroup');
+  group.innerHTML = '';
+
+  const label = document.createElement("label");
+  label.className = "form-label";
+  label.innerText = "New Value";
+  group.appendChild(label);
+
+  let input;
+
+  if (field === "ID Type") {
+    input = document.createElement("select");
+    input.className = "form-select";
+    input.id = "newValue";
+
+    const defaultOption = document.createElement("option");
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    defaultOption.text = "-- Select ID Type --";
+    input.appendChild(defaultOption);
+
+    ["Passport", "IC"].forEach(option => {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.text = option;
+      input.appendChild(opt);
+    });
+  } else {
+    input = document.createElement("input");
+    input.className = "form-control mt-1";
+    input.id = "newValue";
+    input.type = type;
+  }
+
+  input.required = true;
+  group.appendChild(input);
+}
+</script>
 
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>

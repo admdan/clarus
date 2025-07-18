@@ -1,30 +1,52 @@
 <div id="banking-info-container">
-    <form hx-post="{{ url_for('profile.update_banking_info') }}"
+    <form hx-post="{{ url_for('profile.update_banking_info') }}?user_id={{ user_id }}"
           hx-target="#banking-info-container"
           hx-swap="innerHTML"
           class="card shadow-sm mb-4">
         <div class="card-header">
-            <h5 class="mb-0">Edit Banking Info</h5>
+            <h5 class="mb-0">
+                Edit Banking Info
+            </h5>
         </div>
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">Bank Name</label>
-                <input type="text" class="form-control" name="bank_name" value="{{ banking.bank_name or '' }}">
+                <input type="text" class="form-control bg-primary-subtle" name="bank_name" value="{{ banking.bank_name or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Bank Name', 'text')">
+                    Request Change
+                </button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Bank Account Number</label>
-                <input type="text" class="form-control" name="bank_account_number" value="{{ banking.bank_account_number or '' }}">
+                <input type="text" class="form-control bg-primary-subtle" value="{{ banking.bank_account_number or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Bank Account Number', 'text')">
+                    Request Change
+                </button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Account Holder Name</label>
-                <input type="text" class="form-control" name="account_holder_name" value="{{ banking.account_holder_name or '' }}">
+                <input type="text" class="form-control bg-primary-subtle" name="account_holder_name" value="{{ banking.account_holder_name or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Account Holder Name', 'text')">
+                    Request Change
+                </button>
             </div>
         </div>
         <div class="card-footer d-flex justify-content-between">
-            <button type="submit" class="btn btn-success">Save</button>
             <button type="button"
                     class="btn btn-secondary"
-                    hx-get="{{ url_for('profile.banking_info') }}"
+                    hx-get="{{ url_for('profile.banking_info') }}?user_id={{ user_id }}"
                     hx-target="#banking-info-container"
                     hx-swap="innerHTML">
               Cancel
@@ -32,5 +54,71 @@
         </div>
     </form>
 </div>
+
+<!-- Change Request Modal -->
+<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" onsubmit="submitChangeRequest(event)">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="changeField" />
+        <div class="mb-3" id="inputGroup">
+          <!-- Input will be inserted here -->
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Reason (optional)</label>
+          <textarea class="form-control" id="changeNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setChangeField(field, type = "text") {
+  document.getElementById('changeField').value = field;
+  const group = document.getElementById('inputGroup');
+  group.innerHTML = '';
+
+  const label = document.createElement("label");
+  label.className = "form-label";
+  label.innerText = "New Value";
+  group.appendChild(label);
+
+  const input = document.createElement("input");
+  input.className = "form-control mt-1";
+  input.id = "newValue";
+  input.type = type;
+  input.required = true;
+
+  group.appendChild(input);
+}
+
+function submitChangeRequest(e) {
+  e.preventDefault();
+  const field = document.getElementById('changeField').value;
+  const new_value = document.getElementById('newValue').value;
+  const note = document.getElementById('changeNote').value;
+
+  fetch("/profile/request_change", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field, new_value, note })
+  }).then(res => {
+    if (res.ok) {
+      alert("Change request submitted.");
+      bootstrap.Modal.getInstance(document.getElementById('changeModal')).hide();
+    } else {
+      alert("Failed to submit change request.");
+    }
+  });
+}
+</script>
 
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>

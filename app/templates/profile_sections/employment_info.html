@@ -1,9 +1,15 @@
 <div id="employment-info-container" class="card shadow-sm mb-4">
+    <div class="alert alert-info d-flex align-items-start mb-3 small">
+        <i class="bi bi-shield-lock me-2 mt-1 d-flex"></i>
+        <div>
+          Employment data may be synced with HR and some fields are locked. Click <strong>Request Change</strong> if updates are required.
+        </div>
+    </div>
     <div class="card-header">
         <h5 class="card-title d-flex justify-content-between">
             Employment Information
             <button class="btn btn-sm btn-primary float-end"
-                    hx-get="/profile/edit_employment_info"
+                    hx-get="{{ url_for('profile.edit_employment_info') }}?user_id={{ user_id }}"
                     hx-target="#employment-info-container"
                     hx-swap="innerHTML">
                 Edit

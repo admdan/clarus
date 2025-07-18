@@ -10,19 +10,21 @@
       </div>
       {% else %}
       <div class="position-relative d-inline-block">
-        <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=random&size=128"
+        <img src="https://ui-avatars.com/api/?name={{ username }}&background=random&size=128"
              alt="Default Avatar"
              class="rounded-circle shadow profile-avatar"
              style="width: 150px; height: 150px; object-fit: cover; border: 2px solid #fff;">
       </div>
       {% endif %}
       <!-- Floating pencil icon triggers file input -->
-      <div class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-1"
-           role="button"
-           onclick="triggerFileInput()"
-           style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-        <i class="bi bi-pencil-fill"></i>
-      </div>
+      {% if current_user.id == user_id %}
+        <div class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-1"
+             role="button"
+             onclick="triggerFileInput()"
+             style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+          <i class="bi bi-pencil-fill"></i>
+        </div>
+      {% endif %}
     </div>
 
     <!-- Form for uploading -->
