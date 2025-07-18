@@ -1,5 +1,5 @@
 <div id="basic_info-container">
-    <form hx-post="{{ url_for('profile.update_basic_info') }}"
+    <form hx-post="{{ url_for('profile.update_basic_info') }}?user_id={{ user_id }}"
           hx-target="#basic-info-container"
           hx-swap="innerHTML"
           class="card shadow-sm mb-4">
@@ -9,41 +9,149 @@
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="full_name" value="{{ profile.full_name or '' }}">
+                <input type="text" name="full_name" class="form-control bg-dark-subtle" value="{{ profile.full_name or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Full Name', 'text')">
+                    Request Change
+                </button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Date of Birth</label>
-                <input type="date" class="form-control" name="date_of_birth" value="{{ profile.date_of_birth or '' }}">
+                <input type="date" name="date_of_birth" class="form-control bg-primary-subtle" name="date_of_birth" value="{{ profile.date_of_birth or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Date of Birth', 'date')">
+                    Request Change
+                </button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Gender</label>
-                <select class="form-select" name="gender">
-                    <option value="" disabled {% if not profile.gender %}selected{% endif %}>Select Gender</option>
-                    <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
-                    <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
-                    <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
-                </select>
+                <input type="text" name="gender" class="form-control bg-primary-subtle" value="{{ profile.gender or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Gender', 'select')">
+                    Request Change
+                </button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Contact Number</label>
-                <input type="text" class="form-control" name="contact_number" value="{{ profile.contact_number or '' }}">
+                <input type="text" name="contact_number" class="form-control bg-primary-subtle" name="contact_number" value="{{ profile.contact_number or '' }}" readonly>
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Contact Number', 'tel')">
+                    Request Change
+                </button>
             </div>
             <div class="mb-3">
                 <label class="form-label">Address</label>
-                <textarea class="form-control" name="address">{{ profile.address or '' }}</textarea>
+                <textarea class="form-control bg-dark-subtle" name="address">{{ profile.address or '' }}</textarea>
             </div>
         </div>
         <div class="card-footer d-flex justify-content-between">
-            <button type="submit" class="btn btn-success">Save</button>
+            <button type="submit"
+                    class="btn btn-success">
+                Save
+            </button>
             <button type="button"
                     class="btn btn-secondary"
-                    hx-get="{{ url_for('profile.basic_info') }}"
+                    hx-get="{{ url_for('profile.basic_info') }}?user_id={{ user_id }}"
                     hx-target="#basic-info-container"
                     hx-swap="innerHTML"
-                    type="button">Cancel</button>
+                    >
+                Cancel
+            </button>
         </div>
     </form>
 </div>
+
+<!-- Change Request Modal -->
+<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" onsubmit="submitChangeRequest(event)">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="changeField" />
+        <div class="mb-3" id="inputGroup">
+          <!-- This will be dynamically generated -->
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Reason (optional)</label>
+          <textarea class="form-control" id="changeNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setChangeField(field, type = "text") {
+  document.getElementById('changeField').value = field;
+  const group = document.getElementById('inputGroup');
+  group.innerHTML = '';
+
+  const label = document.createElement("label");
+  label.className = "form-label";
+  label.innerText = "New Value";
+  group.appendChild(label);
+
+  let input;
+
+  if (type === "select" && field === "Gender") {
+    input = document.createElement("select");
+    input.className = "form-select";
+    input.id = "newValue";
+    ["Male", "Female", "Other"].forEach(option => {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.text = option;
+      input.appendChild(opt);
+    });
+  } else {
+    input = document.createElement("input");
+    input.className = "form-control";
+    input.id = "newValue";
+    input.type = type;
+  }
+
+  input.required = true;
+  group.appendChild(input);
+}
+
+function submitChangeRequest(e) {
+  e.preventDefault();
+  const field = document.getElementById('changeField').value;
+  const new_value = document.getElementById('newValue').value;
+  const note = document.getElementById('changeNote').value;
+
+  fetch("/profile/request_change", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field, new_value, note })
+  }).then(res => {
+    if (res.ok) {
+      alert("Change request submitted.");
+      bootstrap.Modal.getInstance(document.getElementById('changeModal')).hide();
+    } else {
+      alert("Failed to submit change request.");
+    }
+  });
+}
+</script>
 
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>
 

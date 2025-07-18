@@ -1,56 +1,109 @@
 <div id="employment-info-container">
-    <form hx-post="{{ url_for('profile.update_employment_info') }}"
-          hx-target="#employment-info-container"
-          hx-swap="innerHTML"
-          class="card shadow-sm mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Edit Employment Info</h5>
+  <form hx-post="{{ url_for('profile.update_employment_info') }}?user_id={{ user_id }}"
+        hx-target="#employment-info-container"
+        hx-swap="innerHTML"
+        class="card shadow-sm mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Edit Employment Info</h5>
+    </div>
+    <div class="card-body">
+      {% set fields = [
+        ('Job Title', 'text', employment.job_title),
+        ('Department', 'text', employment.department),
+        ('Work Email', 'email', employment.work_email),
+        ('Date Joined', 'date', employment.date_joined),
+        ('Employment Status', 'text', employment.employment_status),
+        ('Supervisor', 'text', employment.supervisor)
+      ] %}
+      {% for label, type, value in fields %}
+        <div class="mb-3">
+          <label class="form-label">{{ label }}</label>
+          <input type="{{ type if type != 'date' else 'text' }}" class="form-control bg-primary-subtle" value="{{ value or '' }}" readonly>
+          <button type="button"
+                  class="btn btn-sm btn-outline-danger mt-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#changeModal"
+                  onclick="setChangeField('{{ label }}', '{{ type }}')">
+            Request Change
+          </button>
         </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <label class="form-label">Job Title</label>
-                <input type="text" class="form-control" name="job_title" value="{{ employment.job_title or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Department</label>
-                <input type="text" class="form-control" name="department" value="{{ employment.department or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Work Email</label>
-                <input type="text" class="form-control" name="work_email" value="{{ employment.work_email or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Date Joined</label>
-                <input type="date" class="form-control" name="date_joined" value="{{ employment.date_joined or '' }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Employment Status</label>
-                <select class="form-select" name="employment_status">
-                    <option value="" disabled {% if not employment.employment_status %}selected{% endif %}>Select Employment Status</option>
-                    <option value="Full-time" {% if employment.employment_status == 'Full-time' %}selected{% endif %}>Full-time</option>
-                    <option value=Part-time" {% if employment.employment_status == 'Part-time' %}selected{% endif %}>Part-time</option>
-                    <option value="Intern" {% if employment.employment_status == 'Intern' %}selected{% endif %}>Intern</option>
-                    <option value="Temporary" {% if employment.employment_status == 'Temporary' %}selected{% endif %}>Temporary</option>
-                    <option value="Freelance" {% if employment.employment_status == 'Freelance' %}selected{% endif %}>Freelance</option>
-                    <option value="Unemployed" {% if employment.employment_status == 'Unemployed' %}selected{% endif %}>Unemployed</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Supervisor</label>
-                <input type="text" class="form-control" name="supervisor" value="{{ employment.supervisor or '' }}">
-            </div>
-            <div class="card-footer d-flex justify-content-between">
-                <button type="submit" class="btn btn-success">Save</button>
-                <button type="button"
-                        class="btn btn-secondary"
-                        hx-get="{{ url_for('profile.employment_info') }}"
-                        hx-target="#employment-info-container"
-                        hx-swap="innerHTML">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    </form>
+      {% endfor %}
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+      <button type="button"
+              class="btn btn-secondary"
+              hx-get="{{ url_for('profile.employment_info') }}?user_id={{ user_id }}"
+              hx-target="#employment-info-container"
+              hx-swap="innerHTML">
+        Cancel
+      </button>
+    </div>
+  </form>
 </div>
+
+<!-- Change Request Modal -->
+<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" onsubmit="submitChangeRequest(event)">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="changeField" />
+        <div class="mb-3" id="inputGroup"></div>
+        <div class="mb-3">
+          <label class="form-label">Reason (optional)</label>
+          <textarea class="form-control" id="changeNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setChangeField(field, type = "text") {
+  document.getElementById('changeField').value = field;
+  const group = document.getElementById('inputGroup');
+  group.innerHTML = '';
+
+  const label = document.createElement("label");
+  label.className = "form-label";
+  label.innerText = "New Value";
+  group.appendChild(label);
+
+  let input;
+
+  if (field === "Employment Status") {
+    input = document.createElement("select");
+    input.className = "form-select";
+    input.id = "newValue";
+
+    const defaultOption = document.createElement("option");
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    defaultOption.text = "-- Select Status --";
+    input.appendChild(defaultOption);
+
+    ["Full-time", "Part-time", "Intern", "Terminated", "Retired"].forEach(status => {
+      const opt = document.createElement("option");
+      opt.value = status;
+      opt.text = status;
+      input.appendChild(opt);
+    });
+  } else {
+    input = document.createElement("input");
+    input.className = "form-control mt-1";
+    input.id = "newValue";
+    input.type = type;
+  }
+
+  input.required = true;
+  group.appendChild(input);
+}
+</script>
 
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>

@@ -1,9 +1,15 @@
 <div id="basic-info-container" class="card shadow-sm mb-4">
+    <div class="alert alert-info d-flex align-items-start mb-3 small">
+        <i class="bi bi-shield-lock me-2 mt-1 d-flex"></i>
+        <div>
+          Most personal details are locked and cannot be changed directly. Use the <strong>Request Change</strong> button if needed.
+        </div>
+    </div>
     <div class="card-header">
         <h5 class="card-title d-flex justify-content-between">
             Basic Personal Information
             <button class="btn btn-sm btn-primary float-end"
-                    hx-get="/profile/edit_basic_info"
+                    hx-get="{{ url_for('profile.edit_basic_info') }}?user_id={{ user_id }}"
                     hx-target="#basic-info-container"
                     hx-swap="innerHTML">
                 Edit

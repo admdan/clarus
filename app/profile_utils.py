@@ -1,5 +1,5 @@
 from fileinput import filename
-
+from datetime import datetime
 from .db import get_db_connection
 
 # ───── SETUP ─────
@@ -31,19 +31,31 @@ def update_user_profile(user_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Retrieve current values to preserve locked fields
+    cursor.execute("SELECT full_name, date_of_birth, gender FROM user_profile WHERE user_id = %s", (user_id,))
+    current = cursor.fetchone()
+
+    # Preserve locked fields
+    full_name = current[0]
+    date_of_birth = current[1]
+    gender = current[2]
+
+    contact_number = data.get('contact_number')
+    address = data.get('address')
+
     cursor.execute('''
-                   UPDATE user_profile
-                   SET full_name      = %s,
-                       date_of_birth  = %s,
-                       gender         = %s,
-                       contact_number = %s,
-                       address        = %s,
-                       last_updated   = CURRENT_TIMESTAMP
-                   WHERE user_id = %s
-                   ''', (
-                       data.get('full_name'), data.get('date_of_birth'), data.get('gender'),
-                       data.get('contact_number'), data.get('address'), user_id
-                   ))
+        UPDATE user_profile
+        SET full_name      = %s,
+            date_of_birth  = %s,
+            gender         = %s,
+            contact_number = %s,
+            address        = %s,
+            last_updated   = CURRENT_TIMESTAMP
+        WHERE user_id = %s
+    ''', (
+        full_name, date_of_birth, gender, contact_number, address, user_id
+    ))
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -277,13 +289,27 @@ def add_user_vehicle(user_id, data_dict):
 def update_user_vehicle(vehicle_id, data_dict):
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute('''
         UPDATE user_vehicles
-        SET vehicle_type = %s, make = %s, model = %s, year_model = %s, plate_number = %s,
-            color = %s, parking_permit_id = %s, last_updated = CURRENT_TIMESTAMP
+        SET vehicle_type = %s,
+            make = %s,
+            model = %s,
+            year_model = %s,
+            plate_number = %s,
+            color = %s,
+            parking_permit_id = %s,
+            last_updated = CURRENT_TIMESTAMP
         WHERE id = %s
-    ''', (data_dict['vehicle_type'], data_dict['make'], data_dict['model'], data_dict['year_model'],
-        data_dict['plate_number'], data_dict['color'], data_dict['parking_permit_id'], vehicle_id
+    ''', (
+        data_dict['vehicle_type'],
+        data_dict['make'],
+        data_dict['model'],
+        data_dict['year_model'],
+        data_dict['plate_number'],
+        data_dict['color'],
+        data_dict['parking_permit_id'],
+        vehicle_id
     ))
 
     conn.commit()
@@ -345,3 +371,18 @@ def allowed_file(filename):
     allowed_extensions = {'png', 'jpg', 'jpeg'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
+def update_field_and_timestamp(table, column, value, user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        query = f"""
+            UPDATE {table}
+            SET {column} = %s,
+                last_updated = %s
+            WHERE user_id = %s
+        """
+        cursor.execute(query, (value, datetime.now(), user_id))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()

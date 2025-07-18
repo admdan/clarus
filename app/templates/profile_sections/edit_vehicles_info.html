@@ -1,6 +1,6 @@
 <div id="vehicles-info-container">
     <form
-        hx-post="{{ url_for('profile.edit_vehicles_info', vehicle.id) if vehicle else url_for('profile.add_vehicles_info') }}"
+        hx-post="{{ url_for('profile.edit_vehicles_info', vehicle_id=vehicle.id) if vehicle else url_for('profile.add_vehicles_info') }}?user_id={{ user_id }}"
         hx-target="#vehicles-info-container"
         hx-swap="innerHTML"
         class="card shadow-sm mb-4"
@@ -11,46 +11,141 @@
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">Vehicle Type</label>
-                <select class="form-select" name="vehicle_type">
+                <select class="form-select bg-dark-subtle" name="vehicle_type">
                     <option value="" disabled {% if not vehicle %}selected{% endif %}>Select Vehicle Type</option>
                     <option value="Motorcycle" {% if vehicle and vehicle.vehicle_type == 'Motorcycle' %}selected{% endif %}>Motorcycle</option>
                     <option value="Car" {% if vehicle and vehicle.vehicle_type == 'Car' %}selected{% endif %}>Car</option>
                     <option value="Van" {% if vehicle and vehicle.vehicle_type == 'Van' %}selected{% endif %}>Van</option>
                 </select>
             </div>
-            <div class="mb-3"><label class="form-label">Make</label>
-                <input type="text" class="form-control" name="make" value="{{ vehicle.make if vehicle else '' }}">
+
+            <div class="mb-3">
+                <label class="form-label">Make</label>
+                <input type="text" class="form-control bg-dark-subtle" name="make" value="{{ vehicle.make if vehicle else '' }}">
             </div>
-            <div class="mb-3"><label class="form-label">Model</label>
-                <input type="text" class="form-control" name="model" value="{{ vehicle.model if vehicle else '' }}">
+
+            <div class="mb-3">
+                <label class="form-label">Model</label>
+                <input type="text" class="form-control bg-dark-subtle" name="model" value="{{ vehicle.model if vehicle else '' }}">
             </div>
-            <div class="mb-3"><label class="form-label">Year</label>
-                <select class="form-select" name="year_model">
+
+            <div class="mb-3">
+                <label class="form-label">Year</label>
+                <select class="form-select bg-dark-subtle" name="year_model">
                     <option value="" disabled {% if not vehicle %}selected{% endif %}>Select Year</option>
                     {% for year in range(1990, 2026) %}
                         <option value="{{ year }}" {% if vehicle and vehicle.year_model == year %}selected{% endif %}>{{ year }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="mb-3"><label class="form-label">Plate Number</label>
-                <input type="text" class="form-control" name="plate_number" value="{{ vehicle.plate_number if vehicle else '' }}">
+
+            <div class="mb-3">
+                <label class="form-label">Plate Number</label>
+                <input type="text" class="form-control bg-primary-subtle" name="plate_number" value="{{ vehicle.plate_number if vehicle else '' }}" readonly>
+                <input type="hidden" name="plate_number" value="{{ vehicle.plate_number if vehicle else '' }}">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Plate Number', 'text')">
+                    Request Change
+                </button>
             </div>
-            <div class="mb-3"><label class="form-label">Color</label>
-                <input type="text" class="form-control" name="color" value="{{ vehicle.color if vehicle else '' }}">
+
+            <div class="mb-3">
+                <label class="form-label">Color</label>
+                <input type="text" class="form-control bg-dark-subtle" name="color" value="{{ vehicle.color if vehicle else '' }}">
             </div>
-            <div class="mb-3"><label class="form-label">Parking Permit ID</label>
-                <input type="text" class="form-control" name="parking_permit_id" value="{{ vehicle.parking_permit_id if vehicle else '' }}">
+
+            <div class="mb-3">
+                <label class="form-label">Parking Permit ID</label>
+                <input type="text" class="form-control bg-primary-subtle" name="parking_permit_id" value="{{ vehicle.parking_permit_id if vehicle else '' }}" readonly>
+                <input type="hidden" name="parking_permit_id" value="{{ vehicle.parking_permit_id if vehicle else '' }}">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger mt-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#changeModal"
+                        onclick="setChangeField('Parking Permit ID', 'text')">
+                    Request Change
+                </button>
             </div>
         </div>
+
         <div class="card-footer d-flex justify-content-between">
             <button type="submit" class="btn btn-success">Save</button>
             <button type="button"
                     class="btn btn-secondary"
-                    hx-get="{{ url_for('profile.vehicles_info') }}"
+                    hx-get="{{ url_for('profile.vehicles_info') }}?user_id={{ user_id }}"
                     hx-target="#vehicles-info-container"
                     hx-swap="innerHTML">Cancel</button>
         </div>
     </form>
 </div>
+
+<!-- Change Request Modal -->
+<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" onsubmit="submitChangeRequest(event)">
+      <div class="modal-header">
+        <h5 class="modal-title">Request Change</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="changeField" />
+        <div class="mb-3" id="inputGroup">
+          <!-- Input will be inserted here -->
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Reason (optional)</label>
+          <textarea class="form-control" id="changeNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function setChangeField(field, type = "text") {
+  document.getElementById('changeField').value = field;
+  const group = document.getElementById('inputGroup');
+  group.innerHTML = '';
+
+  const label = document.createElement("label");
+  label.className = "form-label";
+  label.innerText = "New Value";
+  group.appendChild(label);
+
+  const input = document.createElement("input");
+  input.className = "form-control mt-1";
+  input.id = "newValue";
+  input.type = type;
+  input.required = true;
+
+  group.appendChild(input);
+}
+
+function submitChangeRequest(e) {
+  e.preventDefault();
+  const field = document.getElementById('changeField').value;
+  const new_value = document.getElementById('newValue').value;
+  const note = document.getElementById('changeNote').value;
+
+  fetch("/profile/request_change", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ field, new_value, note })
+  }).then(res => {
+    if (res.ok) {
+      alert("Change request submitted.");
+      bootstrap.Modal.getInstance(document.getElementById('changeModal')).hide();
+    } else {
+      alert("Failed to submit change request.");
+    }
+  });
+}
+</script>
 
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>

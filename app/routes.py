@@ -204,12 +204,6 @@ def manage_role():
     conn.close()
     return render_template('manage_role.html', users=users)
 
-@bp.route('/eip')
-@login_required
-@roles_required('admin', 'hr', 'support')
-def eip():
-    return render_template('eip.html')
-
 @bp.route('/aims')
 @login_required
 @roles_required('admin', 'hr', 'support')
