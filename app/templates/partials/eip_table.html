@@ -1,0 +1,90 @@
+{% if change_requests %}
+<div class="table-responsive">
+  <table class="table table-striped table-hover mb-0">
+    <thead class="table-light">
+      <tr>
+        <th>User</th>
+        <th>Email</th>
+        <th>Field</th>
+        <th>Requested Value</th>
+        <th>Note</th>
+        <th>Timestamp</th>
+        <th>Status</th>
+        <th>Actions</th>
+        <th>Resolved By</th>
+        <th>Resolved At</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in change_requests %}
+      <tr>
+        <td>
+          <a href="{{ url_for('profile.view_profile', user_id=req.user_id) }}" class="btn btn-sm btn-outline-primary">
+            {{ req.username }}
+          </a>
+        </td>
+        <td>{{ req.email }}</td>
+        <td>{{ req.field_requested }}</td>
+        <td>{{ req.new_value }}</td>
+        <td>{{ req.note or '-' }}</td>
+        <td>{{ req.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
+          {% if req.status == 'Pending' %}
+            <span class="badge bg-warning text-dark">Pending</span>
+          {% elif req.status == 'Approved' %}
+            <span class="badge bg-success">Approved</span>
+          {% elif req.status == 'Declined' %}
+            <span class="badge bg-danger">Declined</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if req.status == 'Pending' %}
+            <form action="{{ url_for('eip.approve_change_request', request_id=req.id) }}" method="POST" class="d-inline">
+              <button class="btn btn-sm btn-success">Approve</button>
+            </form>
+            <form action="{{ url_for('eip.decline_change_request', request_id=req.id) }}" method="POST" class="d-inline ms-2"
+                  onsubmit="return confirm('Are you sure you want to decline this request?');">
+              <button class="btn btn-sm btn-danger">Decline</button>
+            </form>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>{{ req.resolved_by or '—' }}</td>
+        <td>{{ req.resolved_at.strftime('%Y-%m-%d %H:%M') if req.resolved_at else '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- HTMX Pagination -->
+<nav class="mt-3 d-flex justify-content-center">
+  <ul class="pagination">
+    <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+      <a class="page-link"
+         hx-get="{{ url_for('eip.eip_dashboard', page=current_page - 1, search=search_query, status=status_filter) }}"
+         hx-target="#request-table"
+         hx-push-url="true">&laquo;</a>
+    </li>
+    {% for p in range(1, total_pages + 1) %}
+    <li class="page-item {% if p == current_page %}active{% endif %}">
+      <a class="page-link"
+       hx-get="{{ url_for('eip.eip_dashboard', page=p, search=search_query, status=status_filter) }}"
+       hx-target="#request-table"
+       hx-push-url="true">
+       {{ p }}
+    </a>
+    </li>
+    {% endfor %}
+    <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+      <a class="page-link"
+         hx-get="{{ url_for('eip.eip_dashboard', page=current_page + 1, search=search_query, status=status_filter) }}"
+         hx-target="#request-table"
+         hx-push-url="true">&raquo;</a>
+    </li>
+  </ul>
+</nav>
+{% else %}
+<p class="p-3 text-muted">No change requests found.</p>
+{% endif %}
