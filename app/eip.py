@@ -15,44 +15,81 @@ def eip_dashboard():
     per_page = 10
     offset = (page - 1) * per_page
 
+    status_filter = request.args.get('status')
+    search_query = request.args.get('search')
+
+    conditions = []
+    params = []
+
+    if status_filter:
+        conditions.append("cr.status = %s")
+        params.append(status_filter)
+
+    if search_query:
+        conditions.append("(u.username LIKE %s OR u.email LIKE %s)")
+        like_value = f"%{search_query}%"
+        params.extend([like_value, like_value])
+
+    where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Total count for pagination
-    cursor.execute("SELECT COUNT(*) AS total FROM change_requests")
+    count_query = f"""
+        SELECT COUNT(*) AS total
+        FROM change_requests cr
+        JOIN users u ON cr.user_id = u.id
+        {where_clause}
+    """
+    cursor.execute(count_query, params)
     total_requests = cursor.fetchone()['total']
     total_pages = (total_requests + per_page - 1) // per_page
 
-    cursor.execute("""
-                   SELECT cr.id,
-                          u.id       AS user_id,
-                          u.username,
-                          u.email,
-                          cr.field_requested,
-                          cr.new_value,
-                          cr.note,
-                          cr.timestamp,
-                          cr.status,
-                          cr.resolved_at,
-                          cr.admin_note,
-                          r.username AS resolved_by
-                   FROM change_requests cr
-                            JOIN users u ON cr.user_id = u.id
-                            LEFT JOIN users r ON cr.resolved_by = r.id
-                   ORDER BY cr.timestamp DESC
-                   LIMIT %s OFFSET %s
-                   """, (per_page, offset))
-
+    main_query = f"""
+        SELECT cr.id, 
+               u.id AS user_id,
+               u.username,
+               u.email,
+               cr.field_requested,
+               cr.new_value,
+               cr.note,
+               cr.timestamp,
+               cr.status,
+               cr.resolved_at,
+               cr.admin_note,
+               r.username AS resolved_by
+        FROM change_requests cr
+        JOIN users u ON cr.user_id = u.id
+        LEFT JOIN users r ON cr.resolved_by = r.id
+        {where_clause}
+        ORDER BY cr.timestamp DESC
+        LIMIT %s OFFSET %s
+    """
+    params.extend([per_page, offset])
+    cursor.execute(main_query, params)
     change_requests = cursor.fetchall()
+
     cursor.close()
     conn.close()
 
-    return render_template(
-        'eip.html',
-        change_requests=change_requests,
-        current_page=page,
-        total_pages=total_pages
-    )
+    if request.headers.get('HX-Request'):
+        return render_template(
+            'partials/eip_table.html',
+            change_requests=change_requests,
+            current_page=page,
+            total_pages=total_pages,
+            status_filter=status_filter,
+            search_query=search_query
+        )
+    else:
+        return render_template(
+            'eip.html',
+            change_requests=change_requests,
+            current_page=page,
+            total_pages=total_pages,
+            status_filter=status_filter,
+            search_query=search_query
+        )
 
 
 @eip_bp.route('/approve/<int:request_id>', methods=['POST'])
