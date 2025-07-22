@@ -1,93 +1,92 @@
 {% if change_requests %}
-<div class="overflow-auto rounded shadow bg-white">
-  <table class="min-w-full text-sm text-left">
-    <thead class="bg-gray-100 text-gray-700">
+<div class="table-wrapper bg-body text-body fade-in">
+  <table class="table table-striped table-hover table-bordered align-middle small mb-0">
+    <thead class="{% if theme == 'dark' %}table-dark{% else %}table-light{% endif %}">
       <tr>
-        <th class="px-4 py-3">User</th>
-        <th class="px-4 py-3">Email</th>
-        <th class="px-4 py-3">Field</th>
-        <th class="px-4 py-3">Requested Value</th>
-        <th class="px-4 py-3">Note</th>
-        <th class="px-4 py-3">Timestamp</th>
-        <th class="px-4 py-3">Status</th>
-        <th class="px-4 py-3">Actions</th>
-        <th class="px-4 py-3">Resolved By</th>
-        <th class="px-4 py-3">Resolved At</th>
+        <th>User</th>
+        <th>Email</th>
+        <th>Field</th>
+        <th>Requested Value</th>
+        <th>Note</th>
+        <th>Timestamp</th>
+        <th>Status</th>
+        <th>Actions</th>
+        <th>Resolved By</th>
+        <th>Resolved At</th>
       </tr>
     </thead>
     <tbody>
       {% for req in change_requests %}
-      <tr class="border-t hover:bg-gray-50">
-        <td class="px-4 py-3">
-          <a href="{{ url_for('profile.view_profile', user_id=req.user_id) }}" class="text-blue-600 hover:underline">
+      <tr
+        data-status="{{ req.status }}"
+        class="
+          {% if req.status == 'Approved' %}row-approved
+          {% elif req.status == 'Pending' %}row-pending
+          {% elif req.status == 'Declined' %}row-declined
+          {% else %}row-default
+          {% endif %}
+          {% if loop.index is odd %} row-odd{% endif %}
+        ">
+        <td>
+          <a href="{{ url_for('profile.view_profile', user_id=req.user_id) }}" class="text-primary text-decoration-none">
             {{ req.username }}
           </a>
         </td>
-        <td class="px-4 py-3">{{ req.email }}</td>
-        <td class="px-4 py-3">{{ req.field_requested }}</td>
-        <td class="px-4 py-3">{{ req.new_value }}</td>
-        <td class="px-4 py-3">{{ req.note or '-' }}</td>
-        <td class="px-4 py-3">{{ req.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-        <td class="px-4 py-3">
+        <td>{{ req.email }}</td>
+        <td>{{ req.field_requested }}</td>
+        <td>{{ req.new_value }}</td>
+        <td>{{ req.note or '—' }}</td>
+        <td>{{ req.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>
           {% if req.status == 'Pending' %}
-            <span class="text-yellow-800 bg-yellow-100 px-2 py-1 rounded text-xs">Pending</span>
+            <span class="badge text-bg-warning">Pending</span>
           {% elif req.status == 'Approved' %}
-            <span class="text-green-800 bg-green-100 px-2 py-1 rounded text-xs">Approved</span>
+            <span class="badge text-bg-success">Approved</span>
           {% elif req.status == 'Declined' %}
-            <span class="text-red-800 bg-red-100 px-2 py-1 rounded text-xs">Declined</span>
+            <span class="badge text-bg-danger">Declined</span>
           {% endif %}
         </td>
-        <td class="px-4 py-3">
+        <td class="text-center"  data-status="{{ req.status | lower }}">
           {% if req.status == 'Pending' %}
-            <form action="{{ url_for('eip.approve_change_request', request_id=req.id) }}" method="POST" class="inline-block">
-              <button class="bg-green-600 text-white px-2 py-1 text-xs rounded hover:bg-green-700 transition">Approve</button>
-            </form>
-            <form action="{{ url_for('eip.decline_change_request', request_id=req.id) }}" method="POST" class="inline-block ml-2" onsubmit="return confirm('Are you sure you want to decline this request?');">
-              <button class="bg-red-600 text-white px-2 py-1 text-xs rounded hover:bg-red-700 transition">Decline</button>
-            </form>
+             <div class="d-flex flex-wrap justify-content-center gap-2">
+              <form action="{{ url_for('eip.approve_change_request', request_id=req.id) }}" method="POST" class="d-inline">
+                <button class="btn btn-sm btn-success">Approve</button>
+              </form>
+              <form action="{{ url_for('eip.decline_change_request', request_id=req.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to decline this request?');">
+                <button class="btn btn-sm btn-danger">Decline</button>
+              </form>
+            </div>
           {% else %}
-            <span class="text-gray-400 text-xs">—</span>
+            <span class="text-muted">—</span>
           {% endif %}
         </td>
-        <td class="px-4 py-3">{{ req.resolved_by or '—' }}</td>
-        <td class="px-4 py-3">{{ req.resolved_at.strftime('%Y-%m-%d %H:%M') if req.resolved_at else '—' }}</td>
+        <td>{{ req.resolved_by or '—' }}</td>
+        <td>{{ req.resolved_at.strftime('%Y-%m-%d %H:%M') if req.resolved_at else '—' }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-<!-- Tailwind Pagination -->
-<nav class="mt-6 flex justify-center">
-  <ul class="inline-flex -space-x-px text-sm">
-    <li>
-      <a class="px-3 py-2 border rounded-l-lg {% if current_page == 1 %}text-gray-300 cursor-not-allowed{% else %}text-blue-600 hover:bg-blue-50{% endif %}"
-         hx-get="{{ url_for('eip.eip_dashboard', page=current_page - 1, search=search_query, status=status_filter) }}"
-         hx-target="#request-table"
-         hx-push-url="true">
-        &laquo;
-      </a>
+<!-- Bootstrap Pagination -->
+<nav class="mt-4 d-flex justify-content-center">
+  <ul class="pagination pagination-sm">
+    <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+      <a class="page-link" hx-get="{{ url_for('eip.eip_dashboard', page=current_page - 1, search=search_query, status=status_filter) }}"
+         hx-target="#request-table" hx-push-url="true">&laquo;</a>
     </li>
     {% for p in range(1, total_pages + 1) %}
-    <li>
-      <a class="px-3 py-2 border {{ 'bg-blue-600 text-white' if p == current_page else 'text-blue-600 hover:bg-blue-50' }}"
-         hx-get="{{ url_for('eip.eip_dashboard', page=p, search=search_query, status=status_filter) }}"
-         hx-target="#request-table"
-         hx-push-url="true">
-        {{ p }}
-      </a>
+    <li class="page-item {% if p == current_page %}active{% endif %}">
+      <a class="page-link" hx-get="{{ url_for('eip.eip_dashboard', page=p, search=search_query, status=status_filter) }}"
+         hx-target="#request-table" hx-push-url="true">{{ p }}</a>
     </li>
     {% endfor %}
-    <li>
-      <a class="px-3 py-2 border rounded-r-lg {% if current_page == total_pages %}text-gray-300 cursor-not-allowed{% else %}text-blue-600 hover:bg-blue-50{% endif %}"
-         hx-get="{{ url_for('eip.eip_dashboard', page=current_page + 1, search=search_query, status=status_filter) }}"
-         hx-target="#request-table"
-         hx-push-url="true">
-        &raquo;
-      </a>
+    <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+      <a class="page-link" hx-get="{{ url_for('eip.eip_dashboard', page=current_page + 1, search=search_query, status=status_filter) }}"
+         hx-target="#request-table" hx-push-url="true">&raquo;</a>
     </li>
   </ul>
 </nav>
 {% else %}
-<p class="text-center text-gray-500 py-6">No change requests found.</p>
+<p class="text-center text-muted py-5">No change requests found.</p>
 {% endif %}
