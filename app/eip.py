@@ -11,30 +11,48 @@ eip_bp = Blueprint('eip', __name__, url_prefix='/eip')
 @login_required
 @roles_required('admin', 'hr', 'support')
 def eip_dashboard():
+    page = int(request.args.get('page', 1))
+    per_page = 10
+    offset = (page - 1) * per_page
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+
+    # Total count for pagination
+    cursor.execute("SELECT COUNT(*) AS total FROM change_requests")
+    total_requests = cursor.fetchone()['total']
+    total_pages = (total_requests + per_page - 1) // per_page
+
     cursor.execute("""
-        SELECT cr.id, 
-               u.id AS user_id,
-               u.username,
-               u.email,
-               cr.field_requested,
-               cr.new_value,
-               cr.note,
-               cr.timestamp,
-               cr.status,
-               cr.resolved_at,
-               cr.admin_note,
-               r.username AS resolved_by
-        FROM change_requests cr
-                 JOIN users u ON cr.user_id = u.id
-                 LEFT JOIN users r ON cr.resolved_by = r.id
-        ORDER BY cr.timestamp DESC
-    """)
+                   SELECT cr.id,
+                          u.id       AS user_id,
+                          u.username,
+                          u.email,
+                          cr.field_requested,
+                          cr.new_value,
+                          cr.note,
+                          cr.timestamp,
+                          cr.status,
+                          cr.resolved_at,
+                          cr.admin_note,
+                          r.username AS resolved_by
+                   FROM change_requests cr
+                            JOIN users u ON cr.user_id = u.id
+                            LEFT JOIN users r ON cr.resolved_by = r.id
+                   ORDER BY cr.timestamp DESC
+                   LIMIT %s OFFSET %s
+                   """, (per_page, offset))
+
     change_requests = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('eip.html', change_requests=change_requests)
+
+    return render_template(
+        'eip.html',
+        change_requests=change_requests,
+        current_page=page,
+        total_pages=total_pages
+    )
 
 
 @eip_bp.route('/approve/<int:request_id>', methods=['POST'])
