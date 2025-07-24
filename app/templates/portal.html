@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <title>Clarus Portal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -11,8 +16,11 @@
         extend: {
           colors: {
             brandBlue: '#303294',
+            brandLightBlue: '#6366F1',
             brandYellow: '#E5DA3C',
-            brandRed: '#EE1A22'
+            brandLightYellow: '#F9F871',
+            brandRed: '#EE1A22',
+            brandLightRed: '#FF6B6B'
           },
           keyframes: {
             fadeIn: {
@@ -49,13 +57,6 @@
               '0%': { backgroundPosition: '-200% 0' },
               '100%': { backgroundPosition: '200% 0' }
             },
-            threadDance: {
-              '0%': { transform: 'translateY(0) rotate(0deg)' },
-              '25%': { transform: 'translateY(-5px) rotate(1deg)' },
-              '50%': { transform: 'translateY(0) rotate(0deg)' },
-              '75%': { transform: 'translateY(5px) rotate(-1deg)' },
-              '100%': { transform: 'translateY(0) rotate(0deg)' }
-            }
           },
           animation: {
             fadeIn: 'fadeIn 1s ease-in-out',
@@ -65,13 +66,14 @@
             weave: 'weave 0.8s ease-out forwards',
             pulse3d: 'pulse3d 2s ease-in-out infinite',
             float: 'float 3s ease-in-out infinite',
-            shimmer: 'shimmer 2s linear infinite',
-            threadDance: 'threadDance 4s ease-in-out infinite'
+            shimmer: 'shimmer 2s linear infinite'
           }
         }
       }
     };
   </script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/ldrs/dist/auto/hatch.js"></script>
+
   <style>
     .glass-effect {
       background: rgba(255, 255, 255, 0.1);
@@ -87,23 +89,13 @@
     .thread-gradient {
       background: linear-gradient(45deg, #303294, #E5DA3C, #EE1A22, #303294);
       background-size: 400% 400%;
-      animation: gradientShift 3s ease infinite;
+      animation: gradientShift 2s ease-in-out infinite;
     }
 
     @keyframes gradientShift {
       0% { background-position: 0% 50%; }
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
-    }
-
-    .shimmer-bg {
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.2),
-        transparent
-      );
-      background-size: 200% 100%;
     }
 
     .perspective-card {
@@ -119,21 +111,6 @@
       transform: rotateY(10deg) rotateX(5deg) translateZ(20px);
     }
 
-    .floating-threads {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    .floating-thread {
-      position: absolute;
-      width: 2px;
-      height: 60px;
-      opacity: 0.3;
-    }
-
     .module-glow {
       box-shadow: 0 0 30px rgba(48, 50, 148, 0.3);
       transition: box-shadow 0.3s ease;
@@ -142,39 +119,122 @@
     .module-glow:hover {
       box-shadow: 0 0 50px rgba(48, 50, 148, 0.5);
     }
+
+    .shimmer-bg {
+      display: inline-block;
+      position: relative;
+      color: transparent; /* required for background-clip */
+      background: linear-gradient(
+        90deg,
+        #ffffff 0%,
+        #dddddd 40%,
+        #ffffff 60%,
+        #cccccc 100%
+      );
+      background-size: 200% 100%;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 2s linear infinite;
+    }
+
+    .shimmer-hover {
+      position: relative;
+      color: black; /* fallback */
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    .shimmer-hover:after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      color: transparent;
+      background: linear-gradient(
+        45deg,
+        transparent,
+        white 40%,
+        transparent
+      );
+      background-size: 200% 100%;
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 2s linear infinite;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .shimmer-hover:hover::after {
+      opacity: 1;
+    }
+    .animate-shimmer {
+      animation: shimmer 2s linear infinite;
+    }
+
+    .card-3d {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-3d::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 200%;
+      height: 100%;
+      background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%,
+        transparent 60%
+      );
+      transform: skewX(-25deg);
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .card-3d:hover::before {
+      animation: metallic-glint 1.5s ease-in-out infinite;
+      opacity: 1;
+    }
+
+    @keyframes metallic-glint {
+      0% {
+        left: -75%;
+      }
+      50% {
+        left: 100%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
   </style>
 </head>
+
 <body class="bg-gray-900 text-gray-100 min-h-screen transition-all duration-500">
 
   <!-- Animated Loader -->
-  <div id="loader" class="fixed inset-0 bg-gray-900 z-50 flex flex-col items-center justify-center">
-    <div class="floating-threads">
-      <div class="floating-thread bg-brandBlue opacity-30" style="left: 20%; animation: threadDance 4s ease-in-out infinite;"></div>
-      <div class="floating-thread bg-brandYellow opacity-20" style="left: 50%; animation: threadDance 4s ease-in-out infinite 2s;"></div>
-      <div class="floating-thread bg-brandRed opacity-20" style="left: 80%; animation: threadDance 4s ease-in-out infinite 1s;"></div>
-    </div>
-
+  <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center" style="scale: 1">
     <div class="text-center">
-      <h1 class="text-6xl font-bold mb-8 animate-pulse3d">
-        <span class="text-brandBlue">C</span><span class="text-brandYellow">l</span><span class="text-brandRed">a</span><span class="text-brandBlue">r</span><span class="text-brandYellow">u</span><span class="text-brandRed">s</span>
+      <h1 class="text-6xl mb-8 group flex justify-center gap-1" style="animation-delay: 0.5s;">
+        <span class="shimmer-hover text-black font-[Poppins] font-extrabold tracking-wildest" data-text="CLARUS">CLARUS</span>
       </h1>
-
-      <div class="space-y-4 overflow-hidden">
-        <div class="relative h-3 w-80 mx-auto rounded-full bg-gray-800">
-          <div class="absolute inset-0 h-3 bg-brandBlue rounded-full animate-unfoldBlue origin-left transform scale-x-0"></div>
-        </div>
-        <div class="relative h-3 w-80 mx-auto rounded-full bg-gray-800">
-          <div class="absolute inset-0 h-3 bg-brandYellow rounded-full animate-unfoldYellow origin-left transform scale-x-0"></div>
-        </div>
-        <div class="relative h-3 w-80 mx-auto rounded-full bg-gray-800">
-          <div class="absolute inset-0 h-3 bg-brandRed rounded-full animate-unfoldRed origin-left transform scale-x-0"></div>
-        </div>
+      <div class="relative w-[150px] h-[150px] mx-auto thread-gradient overflow-hidden">
+        <l-hatch size="150" stroke="50" speed="5" color="white" class="absolute top-0 left-0 opacity-100"></l-hatch>
       </div>
-
-      <p class="mt-8 text-lg text-gray-300 animate-pulse">Weaving your digital threads...</p>
+      <p id="clarus-tagline" class="mt-6 text-lg text-black bg-white px-4 py-2 rounded shadow font-semibold"></p>
     </div>
   </div>
-
   <!-- Main Content -->
   <div id="main-content" class="hidden">
 
@@ -370,32 +430,48 @@
   </div>
 
   <script>
-    // Enhanced loader with staggered animations
+    const loader = document.getElementById('loader');
+    const main = document.getElementById('main-content');
+    const tagline = document.getElementById('clarus-tagline');
+    const phrases = [
+      'Weaving your digital threads...',
+      'Securing every byte.',
+      'Your digital companion.',
+      'Where IT meets clarity.'
+    ];
+
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+
+    function typewriter() {
+      const phrase = phrases[phraseIndex];
+      tagline.textContent = phrase.slice(0, charIndex);
+
+      if (!isDeleting && charIndex < phrase.length) {
+        charIndex++;
+        setTimeout(typewriter, 60);
+      } else if (isDeleting && charIndex > 0) {
+        charIndex--;
+        setTimeout(typewriter, 30);
+      } else {
+        isDeleting = !isDeleting;
+        if (!isDeleting) phraseIndex = (phraseIndex + 1) % phrases.length;
+        setTimeout(typewriter, 1200);
+      }
+    }
+
     window.addEventListener('load', () => {
       setTimeout(() => {
-        document.getElementById('loader').style.opacity = '0';
-        document.getElementById('loader').style.transform = 'scale(0.95)';
+        loader.style.opacity = '0';
+        loader.style.transform = 'scale(0.95)';
         setTimeout(() => {
-          document.getElementById('loader').style.display = 'none';
-          document.getElementById('main-content').classList.remove('hidden');
-          document.getElementById('main-content').style.animation = 'fadeIn 1s ease-in-out';
+          loader.style.display = 'none';
+          main.classList.remove('hidden');
+          main.style.animation = 'fadeIn 1s ease-in-out';
+          typewriter();
         }, 500);
-      }, 3000);
-    });
-
-    // Add interactive hover effects
-    document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.perspective-card');
-
-      cards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-          this.style.transform = 'scale(1.02)';
-        });
-
-        card.addEventListener('mouseleave', function() {
-          this.style.transform = 'scale(1)';
-        });
-      });
+      }, 4000);
     });
   </script>
 </body>
