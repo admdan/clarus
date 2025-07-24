@@ -4,12 +4,244 @@
     <meta charset="UTF-8">
     <title>Asset Inventory Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+      /* Light/Dark Theme Variables */
+      :root[data-bs-theme="light"] {
+        --bs-body-bg: #f8f9fa;
+        --bs-body-color: #212529;
+      }
+      :root[data-bs-theme="dark"] {
+        --bs-body-bg: #121212;
+        --bs-body-color: #f8f9fa;
+      }
+
+      body {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      #themeToggle {
+        font-size: 1.25rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+      }
+      [data-bs-theme="dark"] #themeIcon {
+        color: white;
+      }
+      [data-bs-theme="light"] #themeIcon {
+        color: #212529;
+      }
+
+      .filter-card {
+        background-color: var(--bs-card-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+      }
+      [data-bs-theme="light"] .filter-card:hover {
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+        transform: scale(1.01);
+      }
+      [data-bs-theme="dark"] .filter-card {
+        box-shadow: 0 0 16px rgba(255, 255, 255, 0.08);
+      }
+      [data-bs-theme="dark"] .filter-card:hover {
+          transform: scale(1.01);
+          box-shadow: 0 4px 24px rgba(255, 255, 255, 0.15);
+      }
+
+      .table-wrapper {
+        background-color: var(--bs-card-bg);
+        padding: 1rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 0 6px rgba(0,0,0,0.05);
+      }
+
+      .fade-in {
+        animation: fadeIn 0.5s ease;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .pagination .page-link {
+        transition: background-color 0.2s, color 0.2s, transform 0.2s;
+        border: none;
+        margin: 0 2px;
+        border-radius: 6px;
+      }
+
+      .pagination .page-link:hover {
+        background-color: rgba(13, 110, 253, 0.15);
+        color: var(--bs-primary);
+        transform: translateY(-1px);
+      }
+
+      .pagination .page-item.active .page-link {
+        background-color: var(--bs-primary);
+        color: #fff;
+        font-weight: 600;
+      }
+
+      [data-bs-theme="dark"] .pagination .page-link:hover {
+        background-color: rgba(13, 110, 253, 0.3);
+        color: #fff;
+      }
+
+      label.form-label {
+          color: inherit;
+      }
+
+      thead {
+          background-color: #ffffff !important;
+          color: #000000 !important;
+      }
+
+      /* Add clear borders and background for table */
+      [data-bs-theme="light"] .table td,
+      [data-bs-theme="light"] .table th {
+          border-right: 1px solid #dee2e6;
+          border-bottom: 1px solid #dee2e6;
+      }
+
+      [data-bs-theme="light"] .table td:last-child,
+      [data-bs-theme="light"] .table th:last-child {
+          border-right: none;
+      }
+
+      [data-bs-theme="light"] .table thead th {
+          background-color: #e9ecef;
+          color: #000;
+          border-bottom: 2px solid #dee2e6;
+      }
+
+        /* Header */
+      [data-bs-theme="light"] thead {
+          background-color: #e9ecef !important;
+          color: #000 !important;
+      }
+
+      [data-bs-theme="dark"] thead {
+          background-color: #1f1f1f !important;
+          color: #f8f9fa !important;
+      }
+
+        /* Row separation */
+      .table tbody tr {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      [data-bs-theme="dark"] .table tbody tr {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Column border separation */
+      .table tbody td,
+      .table thead th {
+          border-right: 1px solid rgba(0, 0, 0, 0.05);
+      }
+
+      [data-bs-theme="dark"] .table tbody td,
+      [data-bs-theme="dark"] .table thead th {
+          border-right: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .table tbody td:last-child,
+      .table thead th:last-child {
+          border-right: none;
+      }
+
+      [data-bs-theme="light"] .table-wrapper {
+          background-color: #ffffff;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+          border: 1px solid #dee2e6;
+        }
+
+      [data-bs-theme="light"] .filter-card {
+          background-color: #ffffff;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+          border: 1px solid #dee2e6;
+      }
+
+      [data-bs-theme="light"] .table th,
+      [data-bs-theme="light"] .table td {
+          border-color: #dee2e6;
+      }
+
+      [data-bs-theme="light"] .table-wrapper:hover,
+      [data-bs-theme="light"] .filter-card:hover {
+          transform: scale(1.01);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+      }
+
+      [data-bs-theme="dark"] .table-wrapper {
+          background-color: #1a1a1a;
+          box-shadow: 0 0 16px rgba(255, 255, 255, 0.05), 0 0 32px rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      [data-bs-theme="light"] .table tbody tr {
+          border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+          background-color: #e9ecef !important;
+          transition: background-color 0.3s ease;
+      }
+
+      [data-bs-theme="light"] .table td,
+      [data-bs-theme="light"] .table th {
+          border-right: 1px solid rgba(0, 0, 0, 0.05);
+      }
+
+      [data-bs-theme="light"] .table td:last-child,
+      [data-bs-theme="light"] .table th:last-child {
+          border-right: none;
+      }
+
+      /* Stronger striped rows in light mode */
+        [data-bs-theme="light"] .table-striped tbody tr:nth-of-type(odd) {
+          background-color: #f1f3f5 !important; /* very light gray */
+        }
+
+        [data-bs-theme="light"] .table-striped tbody tr:nth-of-type(even) {
+          background-color: #e3e7eb !important; /* medium-light gray */
+        }
+
+        [data-bs-theme="light"] .table thead th {
+          background-color: #ffffff !important; /* pure white for header */
+          color: #000 !important;
+          font-weight: 700;
+          border-color: #adb5bd !important;
+        }
+
+        [data-bs-theme="light"] .table-hover tbody tr:hover {
+          background-color: #d0ebff !important;  /* bright blue tint on hover */
+        }
+
+        [data-bs-theme="light"] .table td,
+        [data-bs-theme="light"] .table th {
+          border: 1px solid #adb5bd !important;  /* strong visible borders */
+        }
+
+
+
+
+    </style>
 </head>
-<body class="bg-light">
+<body>
 <div class="container py-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Asset Inventory Management System (AIMS)</h2>
-        <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
+        <h2><i class="bi bi-hdd-network-fill me-2"></i>Asset Inventory Management System (AIMS)</h2>
+        <div class="d-flex gap-2 align-items-center">
+          <button id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-brightness-high-fill" id="themeIcon"></i>
+          </button>
+          <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
+        </div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -22,37 +254,40 @@
       {% endif %}
     {% endwith %}
 
-    <form method="GET" class="row g-3 mb-3">
-        <div class="col-md-3">
-            <label class="form-label">Device Type</label>
-            <select name="device_type" class="form-select">
-                <option value="">All</option>
-                {% for type in ['Desktop', 'Laptop', 'Mobile', 'Printer', 'Router', 'Switch', 'Tablet', 'Other'] %}
-                    <option value="{{ type }}" {% if request.args.get('device_type') == type %}selected{% endif %}>
-                        {{ type }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Status</label>
-            <select name="status" class="form-select">
-                <option value="">All</option>
-                {% for status in ['Available', 'In Use', 'Repair', 'Retired'] %}
-                    <option value="{{ status }}" {% if request.args.get('status') == status %}selected{% endif %}>
-                        {{ status }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">Search (Serial/User)</label>
-            <input type="text" name="search" class="form-control" value="{{ request.args.get('search', '') }}">
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">Filter</button>
-        </div>
-    </form>
+    <div class="filter-card table-wrapper mb-3">
+        <form method="GET" class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Device Type</label>
+                <select name="device_type" class="form-select bg-dark-subtle">
+                    <option value="">All</option>
+                    {% for type in ['Desktop', 'Laptop', 'Mobile', 'Printer', 'Router', 'Switch', 'Tablet', 'Other'] %}
+                        <option value="{{ type }}" {% if request.args.get('device_type') == type %}selected{% endif %}>
+                            {{ type }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select bg-dark-subtle">
+                    <option value="">All</option>
+                    {% for status in ['Available', 'In Use', 'Repair', 'Retired'] %}
+                        <option value="{{ status }}" {% if request.args.get('status') == status %}selected{% endif %}>
+                            {{ status }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" placeholder="Serial number or username" name="search" class="form-control bg-dark-subtle" value="{{ request.args.get('search', '') }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-3">
+                <button type="submit" class="btn btn-primary w-50 ">Filter</button>
+                <a href="{{ url_for('asset.inventory_dashboard') }}" class="btn btn-outline-secondary w-50">Reset</a>
+            </div>
+        </form>
+    </div>
 
     <p class="text-muted">{{ total }} asset{{ 's' if total != 1 else '' }} found.</p>
 
@@ -64,7 +299,7 @@
         <button type="button" class="btn btn-outline-dark" id="exportBtn">Export</button>
     </div>
 
-    <table class="table table-bordered table-striped">
+    <table class="table table-hover table-wrapper bg-body text-body table-striped">
         <thead>
             <tr>
                 <th>Device Type</th>
@@ -73,10 +308,10 @@
                 <th>Status</th>
                 <th>Assigned To</th>
                 <th>Date Assigned</th>
-                <th>Actions</th>
+                <th class="text-center">Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="fade-in">
             {% for asset in assets %}
             <tr>
                 <td>{{ asset.device_type }}</td>
@@ -85,11 +320,13 @@
                 <td>{{ asset.status }}</td>
                 <td>{{ asset.assigned_user or 'Unassigned' }}</td>
                 <td>{{ asset.date_assigned or '-' }}</td>
-                <td>
-                    <a href="{{ url_for('asset.edit_asset', asset_id=asset.asset_id) }}" class="btn btn-sm btn-warning">Edit</a>
-                    <form action="{{ url_for('asset.delete_asset', asset_id=asset.asset_id) }}" method="POST" style="display:inline;">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete asset?')">Delete</button>
-                    </form>
+                <td class="text-center">
+                    <div class="d-flex justify-content-center align-items-center gap-2">
+                        <a href="{{ url_for('asset.edit_asset', asset_id=asset.asset_id) }}" class="btn btn-sm btn-warning px-3 py-1">Edit</a>
+                        <form action="{{ url_for('asset.delete_asset', asset_id=asset.asset_id) }}" method="POST" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger px-3 py-1" onclick="return confirm('Delete asset?')">Delete</button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
@@ -183,6 +420,26 @@ document.getElementById('unifiedExportForm').addEventListener('submit', function
     window.open(`${url}?${params.toString()}`, '_blank');
   }
 });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-bs-theme', savedTheme);
+      document.getElementById('themeIcon').className =
+        savedTheme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
+    }
+  });
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const icon = document.getElementById('themeIcon');
+    const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', next);
+    icon.className = next === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
+    localStorage.setItem('theme', next);
+  }
 </script>
 
 </body>
