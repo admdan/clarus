@@ -218,13 +218,23 @@
         left: 100%;
       }
     }
+
+    .blink {
+      animation: blink 1s step-start 0s infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 
 <body class="bg-gray-900 text-gray-100 min-h-screen transition-all duration-500">
 
   <!-- Animated Loader -->
-  <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center" style="scale: 1">
+  <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
     <div class="text-center">
       <h1 class="text-6xl mb-8 group flex justify-center gap-1" style="animation-delay: 0.5s;">
         <span class="shimmer-hover text-black font-[Poppins] font-extrabold tracking-wildest" data-text="CLARUS">CLARUS</span>
@@ -232,9 +242,12 @@
       <div class="relative w-[150px] h-[150px] mx-auto thread-gradient overflow-hidden">
         <l-hatch size="150" stroke="50" speed="5" color="white" class="absolute top-0 left-0 opacity-100"></l-hatch>
       </div>
-      <p id="clarus-tagline" class="mt-6 text-lg text-black bg-white px-4 py-2 rounded shadow font-semibold"></p>
+      <h2 class="text-2xl font-[Poppins] mt-8 group flex justify-center gap-1" style="animation-delay: 0.75s;">
+        <span id="typewriter" class="font-[Poppins] text-lg text-black font-semibold tracking-wildest"></span><span class="blink text-black">|</span>
+      </h2>
     </div>
   </div>
+
   <!-- Main Content -->
   <div id="main-content" class="hidden">
 
@@ -430,49 +443,66 @@
   </div>
 
   <script>
-    const loader = document.getElementById('loader');
-    const main = document.getElementById('main-content');
-    const tagline = document.getElementById('clarus-tagline');
     const phrases = [
-      'Weaving your digital threads...',
+      'Weaving your digital threads.',
       'Securing every byte.',
-      'Your digital companion.',
       'Where IT meets clarity.'
     ];
 
     let phraseIndex = 0;
     let charIndex = 0;
     let isDeleting = false;
+    let tagline = null; // Will be set after DOM is fully loaded
 
     function typewriter() {
-      const phrase = phrases[phraseIndex];
-      tagline.textContent = phrase.slice(0, charIndex);
+      const currentPhrase = phrases[phraseIndex];
+      tagline.textContent = currentPhrase.slice(0, charIndex);
 
-      if (!isDeleting && charIndex < phrase.length) {
-        charIndex++;
-        setTimeout(typewriter, 60);
-      } else if (isDeleting && charIndex > 0) {
-        charIndex--;
-        setTimeout(typewriter, 30);
+      if (!isDeleting) {
+        if (charIndex < currentPhrase.length) {
+          charIndex++;
+          setTimeout(typewriter, 40);
+        } else {
+          isDeleting = true;
+          setTimeout(typewriter, 500); // pause before deleting
+        }
       } else {
-        isDeleting = !isDeleting;
-        if (!isDeleting) phraseIndex = (phraseIndex + 1) % phrases.length;
-        setTimeout(typewriter, 1200);
+        if (charIndex > 0) {
+          charIndex--;
+          setTimeout(typewriter, 40);
+        } else {
+          isDeleting = false;
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+          setTimeout(typewriter, 50); // pause before the next word
+        }
       }
     }
 
     window.addEventListener('load', () => {
-      setTimeout(() => {
-        loader.style.opacity = '0';
-        loader.style.transform = 'scale(0.95)';
+      const loader = document.getElementById('loader');
+      const main = document.getElementById('main-content');
+      tagline = document.getElementById('typewriter'); // safe to get it now
+
+      if (tagline) {
+        tagline.style.display = 'inline';
+        console.log("Starting typewriter...");
+        typewriter(); // START IMMEDIATELY
+      } else {
+        console.warn("Tagline element not found!");
+      }
+
         setTimeout(() => {
-          loader.style.display = 'none';
-          main.classList.remove('hidden');
-          main.style.animation = 'fadeIn 1s ease-in-out';
-          typewriter();
-        }, 500);
-      }, 4000);
-    });
+          loader.style.opacity = '0';
+          loader.style.transform = 'scale(0.95)';
+
+          setTimeout(() => {
+            loader.style.display = 'none';
+            main.classList.remove('hidden');
+            main.style.animation = 'fadeIn 1s ease-in-out';
+          }, 400);
+        }, 7000); // loader duration
+      });
   </script>
+
 </body>
 </html>
