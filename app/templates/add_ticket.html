@@ -1,56 +1,83 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
 <head>
-    <title>Add Ticket</title>
+  <meta charset="UTF-8">
+  <title>Add Ticket | Clarus</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body {
+      background-color: var(--bs-body-bg);
+      color: var(--bs-body-color);
+      padding-top: 3rem;
+    }
+
+    textarea.auto-resize {
+      overflow-y: hidden;
+      resize: vertical;
+    }
+  </style>
 </head>
 <body>
-    <h1>Add New Ticket</h1>
+  <div class="container">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+      <h2><i class="bi bi-plus-square-dotted me-2"></i>Add New Ticket</h2>
+      <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Tickets
+      </a>
+    </div>
 
-    <form method="post">
-        <h3>User Info</h3>
-        <label>Name:</label>
-        <input type="text"
-               name="user_name" required
-               placeholder="Enter your name..."
-        ><br>
+    <form method="post" class="needs-validation" novalidate>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3">User Info</h5>
+          <div class="mb-3">
+            <input type="text" id="user_name" name="user_name" class="form-control bg-dark-subtle" placeholder="Enter your name" required>
+          </div>
 
-        <h3>Issue</h3>
-        <label>Issue Description:</label><br>
-        <textarea name="issue_description" required
-                  class="auto-resize"
-                  rows="4"
-                  style="width: 100%; resize: vertical; overflow-y: hidden;"
-                  placeholder="Enter issue description..."
-        ></textarea><br>
+          <h5 class="card-title mt-4 mb-3">Issue</h5>
+          <div class="mb-3">
+            <textarea id="issue_description" name="issue_description" class="form-control auto-resize bg-dark-subtle" rows="4" placeholder="Enter issue description" required></textarea>
+          </div>
 
-        <h3>Device Type</h3>
-        <select name="device_type" required>
-            <option value="Desktop">Desktop</option>
-            <option value="Laptop">Laptop</option>
-            <option value="Mobile">Mobile</option>
-            <option value="Printer">Printer</option>
-            <option value="Router">Router</option>
-            <option value="Switch">Switch</option>
-            <option value="Tablet">Tablet</option>
-            <option value="Other">Other</option>
-        </select><br><br>
-        <input type="submit" value="Submit Ticket">
+          <h5 class="card-title mt-4 mb-3">Device Type</h5>
+          <div class="mb-3">
+            <select id="device_type" name="device_type" class="form-select bg-dark-subtle" required>
+              <option value="">Choose device type</option>
+              <option value="Desktop">Desktop</option>
+              <option value="Laptop">Laptop</option>
+              <option value="Mobile">Mobile</option>
+              <option value="Printer">Printer</option>
+              <option value="Router">Router</option>
+              <option value="Switch">Switch</option>
+              <option value="Tablet">Tablet</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="mt-4">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-send-fill me-1"></i> Submit Ticket
+            </button>
+          </div>
+        </div>
+      </div>
     </form>
+  </div>
 
-    <a href="{{ url_for('routes.index') }}">Back to Tickets</a>
-
-    <script>
+  <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const textareas = document.querySelectorAll('.auto-resize');
-        textareas.forEach(textarea => {
-            const resize = () => {
-                textarea.style.height = 'auto';
-                textarea.style.height = textarea.scrollHeight + 'px';
-            };
-            resize();
-            textarea.addEventListener('input', resize);
-        });
+      const textareas = document.querySelectorAll('.auto-resize');
+      textareas.forEach(textarea => {
+        const resize = () => {
+          textarea.style.height = 'auto';
+          textarea.style.height = textarea.scrollHeight + 'px';
+        };
+        resize();
+        textarea.addEventListener('input', resize);
+      });
     });
-    </script>
+  </script>
 </body>
 </html>

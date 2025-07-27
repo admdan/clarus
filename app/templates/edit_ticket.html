@@ -1,144 +1,234 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
 <head>
-    <title>Edit Troubleshooting Ticket</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-          const originalType = document.getElementById('device_type').value;
-          const form = document.querySelector('form');
-          form.addEventListener('submit', function (e) {
-              const newType = document.getElementById('device_type').value;
-              if (originalType !== newType) {
-                  const confirmChange = confirm('Device type has changed. This will generate a new device code. Continue?');
-                  if (!confirmChange) {
-                      e.preventDefault();
-                  }
-              }
-          });
-      });
-    </script>
+  <meta charset="UTF-8">
+  <title>Edit Ticket | Clarus</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    :root[data-bs-theme="light"] {
+      --bs-body-bg: #f8f9fa;
+      --bs-body-color: #212529;
+    }
+    :root[data-bs-theme="dark"] {
+      --bs-body-bg: #121212;
+      --bs-body-color: #f8f9fa;
+    }
+
+    body {
+      background-color: var(--bs-body-bg);
+      color: var(--bs-body-color);
+      padding-top: 3rem;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    textarea.auto-resize {
+      overflow-y: hidden;
+      resize: vertical;
+    }
+  </style>
 </head>
 <body>
-    <h1>Edit Ticket #{{ ticket.id }}</h1>
+  <div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2><i class="bi bi-pencil-square me-2"></i>Edit Ticket #{{ ticket.id }}</h2>
+      <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+      </a>
+    </div>
 
+    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul>
-                {% for category, message in messages %}
-                    <li class="flash {{ category }}">{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+    {% if messages %}
+      <div class="mb-3">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% endwith %}
 
-    <form method="post">
-        <label>User:</label>
-        <input type="text" name="user_name" value="{{ ticket.user_name }}">
+    <form method="post" class="fade-in">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">User</label>
+              <input type="text" name="user_name" class="form-control bg-dark-subtle" value="{{ ticket.user_name }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Device Code</label>
+              <input type="text" name="device_code" class="form-control" value="{{ device.device_code }}" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Device Type</label>
+              <select name="device_type" id="device_type" class="form-select bg-dark-subtle">
+                {% for type in ['Desktop', 'Laptop', 'Printer', 'Router', 'Switch', 'Mobile', 'Tablet', 'Other'] %}
+                  <option value="{{ type }}" {% if device.device_type == type %}selected{% endif %}>{{ type }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Assigned To</label>
+              <input type="text" name="assigned_to" class="form-control bg-dark-subtle" value="{{ ticket.assigned_to or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Priority</label>
+              <select name="priority" class="form-select bg-dark-subtle">
+                {% for p in ['Low', 'Medium', 'High'] %}
+                  <option value="{{ p }}" {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-select bg-dark-subtle">
+                {% for s in ['Open', 'In Progress', 'Resolved'] %}
+                  <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Category</label>
+              <select name="category" class="form-select bg-dark-subtle">
+                {% for c in ['Hardware', 'Software', 'Network', 'Security', 'Access Request', 'General Support'] %}
+                  <option value="{{ c }}" {% if ticket.category == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Due Date</label>
+              <input type="date" name="due_date" class="form-control bg-dark-subtle" value="{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '' }}">
+            </div>
+            <div class="col-md-12">
+              <label class="form-label">Issue</label>
+              <textarea name="issue_description" class="form-control auto-resize bg-dark-subtle" rows="3">{{ ticket.issue_description }}</textarea>
+            </div>
+            <div class="col-md-12">
+              <label class="form-label">Troubleshooting</label>
+              <textarea name="troubleshooting" class="form-control auto-resize bg-dark-subtle" rows="3">{{ ticket.troubleshooting or '' }}</textarea>
+            </div>
+          </div>
 
-        <label>Device Code:</label>
-        <input type="text"  name="device_code" value="{{ device.device_code }}" readonly>
+          <hr class="my-4">
 
-        <label>Device Type:</label>
-        <select name="device_type" id="device_type">
-            {% for type in ['Desktop', 'Laptop', 'Printer', 'Router', 'Switch', 'Mobile', 'Tablet', 'Other'] %}
-                <option value="{{ type }}" {% if device.device_type == type %}selected{% endif %}>{{ type }}</option>
-            {% endfor %}
-        </select>
+          <h5 class="mb-3">Device Information</h5>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Hostname</label>
+              <input type="text" name="hostname" class="form-control" value="{{ device.hostname or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">IPv4</label>
+              <input type="text" name="ipv4_addresses" class="form-control" value="{{ device.ipv4_addresses or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">IPv6</label>
+              <input type="text" name="ipv6_addresses" class="form-control" value="{{ device.ipv6_addresses or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">MAC Address</label>
+              <input type="text" name="mac_addresses" class="form-control" value="{{ device.mac_addresses or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Network Adapters</label>
+              <input type="text" name="network_adapters" class="form-control" value="{{ device.network_adapters or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">OS Name</label>
+              <input type="text" name="os_name" class="form-control" value="{{ device.os_name or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">OS Version</label>
+              <input type="text" name="os_version" class="form-control" value="{{ device.os_version or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Manufacturer</label>
+              <input type="text" name="manufacturer" class="form-control" value="{{ device.manufacturer or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Device Model</label>
+              <input type="text" name="device_model" class="form-control" value="{{ device.device_model or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Serial Number</label>
+              <input type="text" name="serial_number" class="form-control" value="{{ device.serial_number or '' }}">
+            </div>
+          </div>
 
-        <label>Issue:</label>
-        <textarea name="issue_description"
-                  class="auto-resize"
-                  rows="4"
-                  style="width: 100%; resize: vertical; overflow-y: hidden;"
-                  placeholder="Enter issue description..."
-        >{{ ticket.issue_description }}</textarea>
-
-        <label>Troubleshooting</label><br>
-        <textarea name="troubleshooting"
-                  class="auto-resize"
-                  rows="4"
-                  style="width: 100%; resize: vertical; overflow-y: hidden;"
-                  placeholder="Enter troubleshooting steps..."
-        >{{ ticket.troubleshooting or '' }}</textarea><br>
-
-        <label>Priority:</label>
-        <select name="priority">
-            {% for p in ['Low', 'Medium', 'High'] %}
-                <option value="{{ p }}" {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
-            {% endfor %}
-        </select>
-
-        <label>Status:</label>
-        <select name="status">
-            {% for s in ['Open', 'In Progress', 'Resolved'] %}
-                <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
-        </select>
-
-        <label>Category:</label>
-        <select name="category">
-            {% for c in ['Hardware', 'Software', 'Network', 'Security', 'Access Request', 'General Support'] %}
-                <option value="{{ c }}" {% if ticket.category == c %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-        </select>
-
-        <label>Assigned to:</label>
-        <input type="text" name="assigned_to" value="{{ ticket.assigned_to or '' }}">
-
-        <label>Due date:</label>
-        <input type="date" name="due_date" value="{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '' }}">
-
-        <h3>Device Information</h3>
-
-        <label>Hostname:</label>
-        <input type="text" name="hostname" value="{{ device.hostname or '' }}">
-
-        <label>IPv4 Addresses:</label>
-        <input type="text" name="ipv4_addresses" value="{{ device.ipv4_addresses or '' }}">
-
-        <label>IPv6 Addresses:</label>
-        <input type="text" name="ipv6_addresses" value="{{ device.ipv6_addresses or '' }}">
-
-        <label>MAC Addresses:</label>
-        <input type="text" name="mac_addresses" value="{{ device.mac_addresses or '' }}">
-
-        <label>Network Adapters:</label>
-        <input type="text" name="network_adapters" value="{{ device.network_adapters or '' }}">
-
-        <label>OS Name:</label>
-        <input type="text" name="os_name" value="{{ device.os_name or '' }}">
-
-        <label>OS Version:</label>
-        <input type="text" name="os_version" value="{{ device.os_version or '' }}">
-
-        <label>Manufacturer:</label>
-        <input type="text" name="manufacturer" value="{{ device.manufacturer or '' }}">
-
-        <label>Device Model:</label>
-        <input type="text" name="device_model" value="{{ device.device_model or '' }}">
-
-        <label>Serial Number:</label>
-        <input type="text" name="serial_number" value="{{ device.serial_number or '' }}">
-
-        <input type="submit" value="Update">
+          <div class="text-end mt-4">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Update Ticket
+            </button>
+          </div>
+          <div class="text-end mt-3">
+              <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash me-1"></i> Delete Ticket
+              </button>
+          </div>
+        </div>
+      </div>
     </form>
+      <!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="post" action="{{ url_for('routes.delete_ticket', id=ticket.id) }}">
+            <div class="modal-header">
+              <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              Are you sure you want to permanently delete ticket <strong>#{{ ticket.id }}</strong>?
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash3 me-1"></i> Delete
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
-    <br>
-    <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">Back to Dashboard</a>
+  </div>
 
-    <script>
+  <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const textareas = document.querySelectorAll('.auto-resize');
-        textareas.forEach(textarea => {
-            const resize = () => {
-                textarea.style.height = 'auto';
-                textarea.style.height = textarea.scrollHeight + 'px';
-            };
-            resize();
-            textarea.addEventListener('input', resize);
-        });
+      const originalType = document.getElementById('device_type')?.value;
+      const form = document.querySelector('form');
+      form?.addEventListener('submit', function (e) {
+        const newType = document.getElementById('device_type')?.value;
+        if (originalType !== newType) {
+          const confirmChange = confirm('Device type has changed. This will generate a new device code. Continue?');
+          if (!confirmChange) e.preventDefault();
+        }
+      });
+
+      const textareas = document.querySelectorAll('.auto-resize');
+      textareas.forEach(textarea => {
+        const resize = () => {
+          textarea.style.height = 'auto';
+          textarea.style.height = textarea.scrollHeight + 'px';
+        };
+        resize();
+        textarea.addEventListener('input', resize);
+      });
     });
-    </script>
+  </script>
 </body>
 </html>
