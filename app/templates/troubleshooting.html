@@ -157,6 +157,9 @@
         <button id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme">
           <i class="bi bi-brightness-high-fill" id="themeIcon"></i>
         </button>
+        <a href="{{ url_for('routes.add_ticket') }}" class="btn btn-success">
+          <i class="bi bi-plus-circle me-1"></i> Add Ticket
+        </a>
         <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
       </div>
     </div>

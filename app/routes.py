@@ -280,7 +280,7 @@ def delete_ticket(id):
     conn.commit()
     conn.close()
     flash('Ticket deleted successfully!', 'success')
-    return redirect(url_for('routes.portal'))
+    return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
 
 @bp.route('/confirmation')
 def confirmation():
