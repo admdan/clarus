@@ -5,8 +5,9 @@
   <title>Troubleshooting Dashboard | Clarus</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="https://unpkg.com/htmx.org@1.9.5"></script>
   <style>
     :root[data-bs-theme="light"] {
       --bs-body-bg: #f8f9fa;
@@ -88,15 +89,24 @@
       color: #fff7d6 !important;
     }
 
+    [data-bs-theme="light"] tr[data-status="open"] > td {
+      background-color: lightblue !important;
+      color: mediumblue !important;
+    }
+    [data-bs-theme="dark"] tr[data-status="open"] > td {
+      background-color: midnightblue !important;
+      color: #fff7d6 !important;
+    }
+
     .transition-all {
       transition: all 0.3s ease;
     }
     [data-bs-theme="dark"] .transition-all:hover {
-      background-color: rgba(13, 110, 253, 0.1);
+      background-color: midnightblue;
     }
 
     [data-bs-theme="light"] .transition-all:hover {
-      background-color: rgba(13, 110, 253, 0.1) !important;
+      background-color: steelblue !important;
     }
 
     tr[data-status] {
@@ -143,7 +153,7 @@
     }
 
     tr[data-status="open"] > td:first-child {
-      border-left: 5px solid #dc3545;
+      border-left: 5px solid mediumblue;
     }
 
   </style>
@@ -152,14 +162,11 @@
   <div class="container py-5">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2><i class="bi bi-tools me-2"></i>Troubleshooting Dashboard</h2>
+      <h2 class="text-[Poppins]"><i class="bi bi-tools me-2"></i>Troubleshooting Dashboard</h2>
       <div class="d-flex gap-2 align-items-center">
         <button id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme">
           <i class="bi bi-brightness-high-fill" id="themeIcon"></i>
         </button>
-        <a href="{{ url_for('routes.add_ticket') }}" class="btn btn-success">
-          <i class="bi bi-plus-circle me-1"></i> Add Ticket
-        </a>
         <a href="{{ url_for('routes.portal') }}" class="btn btn-outline-secondary">Back to Portal</a>
       </div>
     </div>
@@ -195,7 +202,7 @@
 
     <!-- Filters -->
     <div class="filter-card mb-4 fade-in" style="animation-delay: 0.1s;">
-      <form method="get" action="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="row g-3">
+      <form method="get" action="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="row gy-3 gx-3 d-md-flex align-items-end">
         <div class="col-md-4">
             <label class="form-label">Search</label>
             <input type="text" name="query" value="{{ query }}" class="form-control bg-dark-subtle" placeholder="User, device, or issue">
@@ -218,6 +225,19 @@
             </a>
         </div>
       </form>
+      <div id="ticket-form-trigger-wrapper" class="mt-4">
+        <button
+          id="toggle-ticket-btn"
+          class="btn btn-success"
+          data-mode="add"
+          hx-get="{{ url_for('routes.add_ticket') }}"
+          hx-target="#ticket-form-container"
+          hx-swap="innerHTML"
+        >
+          <i class="bi bi-plus-circle me-1"></i> Add Ticket
+        </button>
+      </div>
+      <div id="ticket-form-container" class="mt-4"></div>
     </div>
 
     <!-- Troubleshooting Table -->
@@ -256,7 +276,7 @@
                 <td>
                     <span
                         class="badge
-                        {% if ticket.status == 'Open' %}bg-danger
+                        {% if ticket.status == 'Open' %}bg-primary
                         {% elif ticket.status == 'In Progress' %}bg-warning text-dark
                         {% elif ticket.status == 'Resolved' %}bg-success
                         {% else %}bg-secondary{% endif %}">
@@ -289,8 +309,53 @@
         document.getElementById('themeIcon').className =
           savedTheme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
       }
+
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+
+      const button = document.getElementById('toggle-ticket-btn');
+      const container = document.getElementById('ticket-form-container');
+
+      // Prevent HTMX request if in "cancel" mode
+      document.body.addEventListener('htmx:configRequest', function (event) {
+        const button = document.getElementById('toggle-ticket-btn');
+        if (
+          button.getAttribute('data-mode') === 'cancel' &&
+          event.detail.elt === button
+        ) {
+          event.preventDefault(); // only block toggle button's own request
+        }
+      });
+
+      button.addEventListener('click', function () {
+        const mode = button.getAttribute('data-mode');
+
+        if (mode === 'cancel') {
+          container.innerHTML = '';
+          button.classList.remove('btn-outline-danger');
+          button.classList.add('btn-success');
+          button.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Add Ticket';
+          button.setAttribute('data-mode', 'add');
+          button.setAttribute('hx-get', '{{ url_for("routes.add_ticket") }}');
+          button.setAttribute('hx-target', '#ticket-form-container');
+          button.setAttribute('hx-swap', 'innerHTML');
+        }
+      });
+
+      document.body.addEventListener('htmx:afterSwap', function (evt) {
+        if (evt.target.id === 'ticket-form-container') {
+          button.removeAttribute('hx-get');
+          button.removeAttribute('hx-target');
+          button.removeAttribute('hx-swap');
+          button.classList.remove('btn-success');
+          button.classList.add('btn-outline-danger');
+          button.innerHTML = '<i class="bi bi-x-circle me-1"></i> Cancel';
+          button.setAttribute('data-mode', 'cancel');
+        }
+      });
     });
 
+    // Theme toggle function
     function toggleTheme() {
       const html = document.documentElement;
       const icon = document.getElementById('themeIcon');
@@ -299,9 +364,33 @@
       icon.className = next === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
       localStorage.setItem('theme', next);
     }
+</script>
+<script>
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    const button = document.getElementById('toggle-ticket-btn');
 
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
-  </script>
+    if (evt.target.id === 'ticket-form-container') {
+      if (evt.target.querySelector('.confirmation-card')) {
+        // Confirmed: it's the success card
+        button.classList.remove('btn-outline-danger');
+        button.classList.add('btn-success');
+        button.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Add Ticket';
+        button.setAttribute('data-mode', 'add');
+        button.setAttribute('hx-get', "{{ url_for('routes.add_ticket') }}");
+        button.setAttribute('hx-target', "#ticket-form-container");
+        button.setAttribute('hx-swap', "innerHTML");
+      } else {
+        // It's the form
+        button.removeAttribute('hx-get');
+        button.removeAttribute('hx-target');
+        button.removeAttribute('hx-swap');
+        button.classList.remove('btn-success');
+        button.classList.add('btn-outline-danger');
+        button.innerHTML = '<i class="bi bi-x-circle me-1"></i> Cancel';
+        button.setAttribute('data-mode', 'cancel');
+      }
+    }
+  });
+</script>
 </body>
 </html>

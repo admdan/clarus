@@ -267,8 +267,18 @@ def add_ticket():
                        ''', (user_name, device_id, issue_description, date_reported))
 
         conn.commit()
+        conn.close()
+
+        # HTMX or full redirect
+        if request.headers.get('HX-Request'):
+            return render_template('partials/confirmation.html', device_code=device_code)
         return redirect(url_for('routes.confirmation', code=device_code))
+
     conn.close()
+
+    # GET Request — serve partial or full form
+    if request.headers.get('HX-Request'):
+        return render_template('partials/add_ticket.html')
     return render_template('add_ticket.html')
 
 @bp.route('/delete/<int:id>', methods=('POST',))
@@ -285,4 +295,4 @@ def delete_ticket(id):
 @bp.route('/confirmation')
 def confirmation():
     code = request.args.get('code')
-    return render_template('confirmation.html', device_code=code)
+    return render_template('partials/confirmation.html', device_code=code)
