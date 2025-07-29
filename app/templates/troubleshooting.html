@@ -106,7 +106,7 @@
     }
 
     [data-bs-theme="light"] .transition-all:hover {
-      background-color: steelblue !important;
+      background-color: lightsteelblue !important;
     }
 
     tr[data-status] {
@@ -205,7 +205,7 @@
       <form method="get" action="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="row gy-3 gx-3 d-md-flex align-items-end">
         <div class="col-md-4">
             <label class="form-label">Search</label>
-            <input type="text" name="query" value="{{ query }}" class="form-control bg-dark-subtle" placeholder="User, device, or issue">
+            <input type="text" name="query" value="{{ query }}" class="form-control bg-dark-subtle" placeholder="User, device ID, or issue">
         </div>
         <div class="col-md-3">
             <label class="form-label">Status</label>
@@ -230,7 +230,7 @@
           id="toggle-ticket-btn"
           class="btn btn-success"
           data-mode="add"
-          hx-get="{{ url_for('routes.add_ticket') }}"
+          hx-get="{{ url_for('troubleshooting.add_ticket') }}"
           hx-target="#ticket-form-container"
           hx-swap="innerHTML"
         >
@@ -336,7 +336,7 @@
           button.classList.add('btn-success');
           button.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Add Ticket';
           button.setAttribute('data-mode', 'add');
-          button.setAttribute('hx-get', '{{ url_for("routes.add_ticket") }}');
+          button.setAttribute('hx-get', '{{ url_for("troubleshooting.add_ticket") }}');
           button.setAttribute('hx-target', '#ticket-form-container');
           button.setAttribute('hx-swap', 'innerHTML');
         }
@@ -376,7 +376,7 @@
         button.classList.add('btn-success');
         button.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Add Ticket';
         button.setAttribute('data-mode', 'add');
-        button.setAttribute('hx-get', "{{ url_for('routes.add_ticket') }}");
+        button.setAttribute('hx-get', "{{ url_for('troubleshooting.add_ticket') }}");
         button.setAttribute('hx-target', "#ticket-form-container");
         button.setAttribute('hx-swap', "innerHTML");
       } else {
