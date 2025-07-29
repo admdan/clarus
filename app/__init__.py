@@ -6,6 +6,8 @@ from .asset import asset_bp
 from .profile import profile_bp
 from .role import role
 from .eip import eip_bp
+from .routes import bp
+from .troubleshooting import troubleshooting_bp
 
 login_manager=LoginManager()
 
@@ -24,9 +26,8 @@ def create_app():
         return get_user(user_id)
 
     with app.app_context():
-        from . import routes, management
-        app.register_blueprint(routes.bp)
-        app.register_blueprint(management.troubleshooting_bp)
+        app.register_blueprint(bp)
+        app.register_blueprint(troubleshooting_bp)
         app.register_blueprint(asset_bp)
         app.register_blueprint(profile_bp)
         app.register_blueprint(role)

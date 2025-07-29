@@ -1,6 +1,6 @@
 <form
   method="post"
-  hx-post="{{ url_for('routes.add_ticket') }}"
+  hx-post="{{ url_for('troubleshooting.add_ticket') }}"
   hx-target="#ticket-form-container"
   hx-swap="innerHTML"
   hx-headers='{"HX-Request":"true"}'
@@ -12,7 +12,7 @@
   <h1 class="fw-semibold text-black" style="font-family: 'Poppins', sans-serif;">New Ticket</h1>
   <div class="col-md-6">
     <label class="form-label text-black">User Name</label>
-    <input type="text" name="user_name" class="form-control bg-dark-subtle" required>
+    <input type="text" name="user_name" placeholder="Insert name of the user" class="form-control bg-dark-subtle" required>
   </div>
   <div class="col-md-6">
     <label class="form-label text-black">Device Type</label>
@@ -30,7 +30,7 @@
   </div>
   <div class="col-12">
     <label class="form-label text-black">Issue Description</label>
-    <textarea name="issue_description" class="form-control bg-dark-subtle" rows="4" required></textarea>
+    <textarea name="issue_description" placeholder="Explain the issue here" class="form-control bg-dark-subtle" rows="4" required></textarea>
   </div>
   <div class="col-12 d-flex justify-content-end">
     <button type="submit" class="btn btn-primary">

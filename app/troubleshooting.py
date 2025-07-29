@@ -1,4 +1,4 @@
-# app/management.py
+# app/troubleshooting.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.routes import roles_required
@@ -66,6 +66,94 @@ def troubleshooting_dashboard():
                            recently_updated=recently_updated,
                            query=query,
                            selected_status=status_filter)
+
+@troubleshooting_bp.route('/add', methods=('GET', 'POST'))
+@login_required
+def add_ticket():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        user_name = request.form['user_name']
+        issue_description = request.form['issue_description']
+        device_type = request.form['device_type']
+        date_reported = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        prefix_map = {
+            'Desktop': 'PC',
+            'Laptop': 'LP',
+            'Mobile': 'PH',
+            'Printer': 'PR',
+            'Router': 'RT',
+            'Switch': 'SW',
+            'Tablet': 'TB',
+            'Other': 'OT'
+        }
+        prefix = prefix_map.get(device_type, 'OT')
+
+        # Generate device_code like PC0002
+        cursor.execute('''SELECT device_code 
+                          FROM devices 
+                          WHERE device_code 
+                                    LIKE %s 
+                          ORDER BY device_code 
+                              DESC LIMIT 1''',
+                       (prefix + '%',))
+        last = cursor.fetchone()
+
+        if last and last['device_code'][len(prefix):].isdigit():
+            last_number = int(last['device_code'][len(prefix):])
+            new_number = last_number + 1
+        else:
+            new_number = 1
+
+        device_code = f"{prefix}{new_number:04}"  # e.g., PC0001
+
+        # Insert a new device with just type and code
+        cursor.execute('''
+                       INSERT INTO devices (device_type, device_code)
+                       VALUES (%s, %s)
+                       ''', (device_type, device_code))
+
+        device_id = cursor.lastrowid
+
+        # Insert into the ticket table
+        cursor.execute('''
+                       INSERT INTO tickets (user_name, device_id, issue_description, date_reported)
+                       VALUES (%s, %s, %s, %s)
+                       ''', (user_name, device_id, issue_description, date_reported))
+
+        conn.commit()
+        conn.close()
+
+        # HTMX or full redirect
+        if request.headers.get('HX-Request'):
+            return render_template('partials/confirmation.html', device_code=device_code)
+        return redirect(url_for('troubleshooting.confirmation', code=device_code))
+
+    conn.close()
+
+    # GET Request — serve partial or full form
+    if request.headers.get('HX-Request'):
+        return render_template('partials/add_ticket.html')
+    return render_template('add_ticket.html')
+
+@troubleshooting_bp.route('/delete/<int:id>', methods=('POST',))
+@login_required
+def delete_ticket(id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM tickets WHERE id = %s', (id,))
+    conn.commit()
+    conn.close()
+    flash('Ticket deleted successfully!', 'success')
+    return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
+
+@troubleshooting_bp.route('/confirmation')
+def confirmation():
+    code = request.args.get('code')
+    return render_template('partials/confirmation.html', device_code=code)
+
 
 @troubleshooting_bp.route('/<int:id>', methods=['GET', 'POST'])
 def edit_ticket(id):
