@@ -47,13 +47,23 @@
       transition: box-shadow 0.3s ease, transform 0.3s ease;
     }
 
-    [data-bs-theme="dark"] .filter-card:hover,
-    [data-bs-theme="light"] .filter-card:hover {
+    [data-bs-theme="light"] .filter-card:hover,
+    [data-bs-theme="dark"] .filter-card:hover {
+      background-color: darkslategrey;
       transform: scale(1.01);
     }
 
+    [data-bs-theme="light"] .filter-card:hover label,
+    [data-bs-theme="dark"] .filter-card:hover label {
+      color: white;
+    }
+
     [data-bs-theme="light"] .filter-card:hover {
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+        transform: scale(1.01);
+    }
+    [data-bs-theme="dark"] .filter-card:hover {
+        box-shadow: 0 4px 24px rgba(255, 255, 255, 0.1), 0 1px 3px rgba(255, 255, 255, 0.05);
         transform: scale(1.01);
     }
 
@@ -171,18 +181,26 @@
       </div>
     </div>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mb-4">
-        {% for category, message in messages %}
-          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'secondary' }} fade show">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-    {% endwith %}
+    <!-- Toast Container (Top Right) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="toast align-items-center text-bg-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} border-0 fade"
+                 role="alert"
+                 data-bs-delay="5000"
+                 data-bs-autohide="true">
+              <div class="d-flex">
+                <div class="toast-body">
+                  {{ message }}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
 
     <!-- Recently Updated -->
     <div class="mb-4">
@@ -202,43 +220,44 @@
 
     <!-- Filters -->
     <div class="filter-card mb-4 fade-in" style="animation-delay: 0.1s;">
-      <form method="get" action="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="row gy-3 gx-3 d-md-flex align-items-end">
-        <div class="col-md-4">
-            <label class="form-label">Search</label>
+      <form method="get" action="{{ url_for('troubleshooting.troubleshooting_dashboard') }}">
+        <div class="row gy-3 gx-3 align-items-end">
+          <div class="col-md-4">
+            <label id="search-label" class="form-label">Search</label>
             <input type="text" name="query" value="{{ query }}" class="form-control bg-dark-subtle" placeholder="User, device ID, or issue">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Status</label>
+          </div>
+          <div class="col-md-3">
+            <label id="status-label" class="form-label">Status</label>
             <select name="status" class="form-select bg-dark-subtle">
-                <option value="All" {% if selected_status == 'All' %}selected{% endif %}>All Status</option>
-                <option value="Open" {% if selected_status == 'Open' %}selected{% endif %}>Open</option>
-                <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
-                <option value="Resolved" {% if selected_status == 'Resolved' %}selected{% endif %}>Resolved</option>
+              <option value="All" {% if selected_status == 'All' %}selected{% endif %}>All Status</option>
+              <option value="Open" {% if selected_status == 'Open' %}selected{% endif %}>Open</option>
+              <option value="In Progress" {% if selected_status == 'In Progress' %}selected{% endif %}>In Progress</option>
+              <option value="Resolved" {% if selected_status == 'Resolved' %}selected{% endif %}>Resolved</option>
             </select>
-        </div>
-        <div class="col-md-3 d-flex gap-2 align-self-end">
+          </div>
+          <div class="col-md-5 d-flex gap-2 justify-content-end">
             <button type="submit" class="btn btn-primary">
               <i class="bi bi-funnel-fill me-1"></i> Filter
             </button>
-            <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="btn btn-secondary">
               <i class="bi bi-arrow-clockwise me-1"></i> Reset
             </a>
+            <button
+              id="toggle-ticket-btn"
+              class="btn btn-success"
+              data-mode="add"
+              hx-get="{{ url_for('troubleshooting.add_ticket') }}"
+              hx-target="#ticket-form-container"
+              hx-swap="innerHTML"
+            >
+              <i class="bi bi-plus-circle me-1"></i> Add Ticket
+            </button>
+          </div>
         </div>
       </form>
-      <div id="ticket-form-trigger-wrapper" class="mt-4">
-        <button
-          id="toggle-ticket-btn"
-          class="btn btn-success"
-          data-mode="add"
-          hx-get="{{ url_for('troubleshooting.add_ticket') }}"
-          hx-target="#ticket-form-container"
-          hx-swap="innerHTML"
-        >
-          <i class="bi bi-plus-circle me-1"></i> Add Ticket
-        </button>
-      </div>
       <div id="ticket-form-container" class="mt-4"></div>
     </div>
+
 
     <!-- Troubleshooting Table -->
     <div class="table-wrapper fade-in">
@@ -332,7 +351,7 @@
 
         if (mode === 'cancel') {
           container.innerHTML = '';
-          button.classList.remove('btn-outline-danger');
+          button.classList.remove('btn-danger');
           button.classList.add('btn-success');
           button.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Add Ticket';
           button.setAttribute('data-mode', 'add');
@@ -348,7 +367,7 @@
           button.removeAttribute('hx-target');
           button.removeAttribute('hx-swap');
           button.classList.remove('btn-success');
-          button.classList.add('btn-outline-danger');
+          button.classList.add('btn-danger');
           button.innerHTML = '<i class="bi bi-x-circle me-1"></i> Cancel';
           button.setAttribute('data-mode', 'cancel');
         }
@@ -385,11 +404,20 @@
         button.removeAttribute('hx-target');
         button.removeAttribute('hx-swap');
         button.classList.remove('btn-success');
-        button.classList.add('btn-outline-danger');
+        button.classList.add('btn-danger');
         button.innerHTML = '<i class="bi bi-x-circle me-1"></i> Cancel';
         button.setAttribute('data-mode', 'cancel');
       }
     }
+  });
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+    toastElList.forEach(toastEl => {
+      const toast = new bootstrap.Toast(toastEl);
+      toast.show();
+    });
   });
 </script>
 </body>

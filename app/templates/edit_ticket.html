@@ -5,6 +5,7 @@
   <title>Edit Ticket | Clarus</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <style>
     :root[data-bs-theme="light"] {
@@ -32,6 +33,37 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .card {
+      background-color: var(--bs-card-bg);
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    [data-bs-theme="light"] .card:hover {
+      transform: scale(1.01);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .transition-all {
+      transition: all 0.3s ease;
+    }
+
+    #themeToggle {
+      font-size: 1.25rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+    }
+
+    [data-bs-theme="dark"] #themeIcon {
+      color: white;
+    }
+
+    [data-bs-theme="light"] #themeIcon {
+      color: #212529;
+    }
+
     textarea.auto-resize {
       overflow-y: hidden;
       resize: vertical;
@@ -39,152 +71,136 @@
   </style>
 </head>
 <body>
-  <div class="container py-4">
+  <div class="container py-5">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2><i class="bi bi-pencil-square me-2"></i>Edit Ticket #{{ ticket.id }}</h2>
-      <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
-      </a>
+      <div class="d-flex gap-2 align-items-center">
+        <button id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme">
+          <i class="bi bi-brightness-high-fill" id="themeIcon"></i>
+        </button>
+        <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+        </a>
+      </div>
     </div>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="mb-3">
+   <!-- Toast Container (Top Right) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }}">
-            {{ message }}
+          <div class="toast align-items-center text-bg-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} border-0 show fade"
+               role="alert"
+               data-bs-delay="5000"
+               data-bs-autohide="true">
+            <div class="d-flex">
+              <div class="toast-body">
+                {{ message }}
+              </div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
           </div>
         {% endfor %}
-      </div>
-    {% endif %}
-    {% endwith %}
+      {% endif %}
+      {% endwith %}
+    </div>
 
+
+    <!-- Edit Form -->
     <form method="post" class="fade-in">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">User</label>
-              <input type="text" name="user_name" class="form-control bg-dark-subtle" value="{{ ticket.user_name }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Device Code</label>
-              <input type="text" name="device_code" class="form-control" value="{{ device.device_code }}" readonly>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Device Type</label>
-              <select name="device_type" id="device_type" class="form-select bg-dark-subtle">
-                {% for type in ['Desktop', 'Laptop', 'Printer', 'Router', 'Switch', 'Mobile', 'Tablet', 'Other'] %}
-                  <option value="{{ type }}" {% if device.device_type == type %}selected{% endif %}>{{ type }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Assigned To</label>
-              <input type="text" name="assigned_to" class="form-control bg-dark-subtle" value="{{ ticket.assigned_to or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Priority</label>
-              <select name="priority" class="form-select bg-dark-subtle">
-                {% for p in ['Low', 'Medium', 'High'] %}
-                  <option value="{{ p }}" {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Status</label>
-              <select name="status" class="form-select bg-dark-subtle">
-                {% for s in ['Open', 'In Progress', 'Resolved'] %}
-                  <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Category</label>
-              <select name="category" class="form-select bg-dark-subtle">
-                {% for c in ['Hardware', 'Software', 'Network', 'Security', 'Access Request', 'General Support'] %}
-                  <option value="{{ c }}" {% if ticket.category == c %}selected{% endif %}>{{ c }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Due Date</label>
-              <input type="date" name="due_date" class="form-control bg-dark-subtle" value="{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '' }}">
-            </div>
-            <div class="col-md-12">
-              <label class="form-label">Issue</label>
-              <textarea name="issue_description" class="form-control auto-resize bg-dark-subtle" rows="3">{{ ticket.issue_description }}</textarea>
-            </div>
-            <div class="col-md-12">
-              <label class="form-label">Troubleshooting</label>
-              <textarea name="troubleshooting" class="form-control auto-resize bg-dark-subtle" rows="3">{{ ticket.troubleshooting or '' }}</textarea>
-            </div>
+      <div class="card p-4">
+        <div class="row g-3">
+          <h3 class="mb-3">General Information</h3>
+          <div class="col-md-6">
+            <label class="form-label">User</label>
+            <input type="text" name="user_name" placeholder="Insert name of the user" class="form-control bg-dark-subtle" value="{{ ticket.user_name }}">
           </div>
+          <div class="col-md-6">
+            <label class="form-label">Device Code</label>
+            <input type="text" name="device_code" class="form-control bg-primary-subtle" value="{{ device.device_code }}" readonly>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Device Type</label>
+            <select name="device_type" id="device_type" class="form-select bg-dark-subtle">
+              {% for type in ['Desktop', 'Laptop', 'Printer', 'Router', 'Switch', 'Mobile', 'Tablet', 'Other'] %}
+                <option value="{{ type }}" {% if device.device_type == type %}selected{% endif %}>{{ type }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Assigned To</label>
+            <input type="text" name="assigned_to"  placeholder="Assigned IT support name or ID" class="form-control bg-dark-subtle" value="{{ ticket.assigned_to or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-select bg-dark-subtle">
+              {% for p in ['Low', 'Medium', 'High'] %}
+                <option value="{{ p }}" {% if ticket.priority == p %}selected{% endif %}>{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select bg-dark-subtle">
+              {% for s in ['Open', 'In Progress', 'Resolved'] %}
+                <option value="{{ s }}" {% if ticket.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-select bg-dark-subtle">
+              {% for c in ['Hardware', 'Software', 'Network', 'Security', 'Access Request', 'General Support'] %}
+                <option value="{{ c }}" {% if ticket.category == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Due Date</label>
+            <input type="date" name="due_date" class="form-control bg-dark-subtle" value="{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '' }}">
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Issue</label>
+            <textarea name="issue_description" placeholder="Describe the user's issue here" class="form-control auto-resize bg-dark-subtle" rows="3">{{ ticket.issue_description }}</textarea>
+          </div>
+          <div class="col-md-12">
+            <label class="form-label">Troubleshooting</label>
+            <textarea name="troubleshooting" placeholder="Describe any troubleshooting steps taken" class="form-control auto-resize bg-dark-subtle" rows="3">{{ ticket.troubleshooting or '' }}</textarea>
+          </div>
+        </div>
 
-          <hr class="my-4">
+        <hr class="my-4">
 
-          <h5 class="mb-3">Device Information</h5>
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="form-label">Hostname</label>
-              <input type="text" name="hostname" class="form-control" value="{{ device.hostname or '' }}">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">IPv4</label>
-              <input type="text" name="ipv4_addresses" class="form-control" value="{{ device.ipv4_addresses or '' }}">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">IPv6</label>
-              <input type="text" name="ipv6_addresses" class="form-control" value="{{ device.ipv6_addresses or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">MAC Address</label>
-              <input type="text" name="mac_addresses" class="form-control" value="{{ device.mac_addresses or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Network Adapters</label>
-              <input type="text" name="network_adapters" class="form-control" value="{{ device.network_adapters or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">OS Name</label>
-              <input type="text" name="os_name" class="form-control" value="{{ device.os_name or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">OS Version</label>
-              <input type="text" name="os_version" class="form-control" value="{{ device.os_version or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Manufacturer</label>
-              <input type="text" name="manufacturer" class="form-control" value="{{ device.manufacturer or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Device Model</label>
-              <input type="text" name="device_model" class="form-control" value="{{ device.device_model or '' }}">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Serial Number</label>
-              <input type="text" name="serial_number" class="form-control" value="{{ device.serial_number or '' }}">
-            </div>
-          </div>
+        <h3 class="mb-3">Device Information</h3>
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label">Hostname</label><input type="text" name="hostname" placeholder="e.g., LAPTOP-12345" class="form-control bg-dark-subtle" value="{{ device.hostname or '' }}"></div>
+          <div class="col-md-4"><label class="form-label">IPv4</label><input type="text" name="ipv4_addresses" placeholder="e.g., 192.168.0.1" class="form-control bg-dark-subtle" value="{{ device.ipv4_addresses or '' }}"></div>
+          <div class="col-md-4"><label class="form-label">IPv6</label><input type="text" name="ipv6_addresses" placeholder="e.g., fe80::1ec1:deff:fe6f:1e1b" class="form-control bg-dark-subtle" value="{{ device.ipv6_addresses or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">MAC Address</label><input type="text" name="mac_addresses" placeholder="e.g., 00:1A:2B:3C:4D:5E" class="form-control bg-dark-subtle" value="{{ device.mac_addresses or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">Network Adapters</label><input type="text" name="network_adapters" placeholder="e.g., Intel Ethernet I219-LM" class="form-control bg-dark-subtle" value="{{ device.network_adapters or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">OS Name</label><input type="text" name="os_name" placeholder="e.g., Windows 11 Pro" class="form-control bg-dark-subtle" value="{{ device.os_name or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">OS Version</label><input type="text" name="os_version" placeholder="e.g., 22H2 Build 22621.2283" class="form-control bg-dark-subtle" value="{{ device.os_version or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">Manufacturer</label><input type="text" name="manufacturer" placeholder="e.g., Dell, HP, Lenovo" class="form-control bg-dark-subtle" value="{{ device.manufacturer or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">Device Model</label><input type="text" name="device_model" placeholder="e.g., Latitude 7420" class="form-control bg-dark-subtle" value="{{ device.device_model or '' }}"></div>
+          <div class="col-md-6"><label class="form-label">Serial Number</label><input type="text" name="serial_number" placeholder="e.g., SN123456789" class="form-control bg-dark-subtle" value="{{ device.serial_number or '' }}"></div>
+        </div>
 
-          <div class="text-end mt-4">
-            <button type="submit" class="btn btn-primary">
-              <i class="bi bi-save me-1"></i> Update Ticket
-            </button>
-          </div>
-          <div class="text-end mt-3">
-              <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                <i class="bi bi-trash me-1"></i> Delete Ticket
-              </button>
-          </div>
+        <div class="d-flex justify-content-end gap-3 mt-4">
+          <button type="submit" id="submitBtn" class="btn btn-primary transition-all d-inline-flex align-items-center gap-2">
+            <span id="submitText"><i class="bi bi-save me-1"></i> Update Ticket</span>
+            <div id="submitSpinner" class="spinner-border spinner-border-sm text-light d-none" role="status" aria-hidden="true"></div>
+          </button>
+          <button type="button" class="btn btn-outline-danger transition-all" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            <i class="bi bi-trash me-1"></i> Delete Ticket
+          </button>
         </div>
       </div>
     </form>
-      <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+
+    <!-- Delete Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <form method="post" action="{{ url_for('troubleshooting.delete_ticket', id=ticket.id) }}">
             <div class="modal-header">
@@ -204,23 +220,55 @@
         </div>
       </div>
     </div>
-
   </div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    function toggleTheme() {
+      const html = document.documentElement;
+      const icon = document.getElementById('themeIcon');
+      const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-bs-theme', next);
+      icon.className = next === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
+      localStorage.setItem('theme', next);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
       const originalType = document.getElementById('device_type')?.value;
       const form = document.querySelector('form');
-      form?.addEventListener('submit', function (e) {
+      const submitBtn = document.getElementById('submitBtn');
+      const submitText = document.getElementById('submitText');
+      const submitSpinner = document.getElementById('submitSpinner');
+
+      let proceedAfterDeviceConfirm = false;
+
+      form?.addEventListener('submit', e => {
         const newType = document.getElementById('device_type')?.value;
-        if (originalType !== newType) {
-          const confirmChange = confirm('Device type has changed. This will generate a new device code. Continue?');
-          if (!confirmChange) e.preventDefault();
+
+        if (!proceedAfterDeviceConfirm && originalType !== newType) {
+          e.preventDefault();
+          const modal = new bootstrap.Modal(document.getElementById('deviceTypeModal'));
+          modal.show();
+          return;
         }
+
+        isDirty = false;
+
+        // Show spinner and disable button
+        submitText?.classList.add('d-none');
+        submitSpinner?.classList.remove('d-none');
+        submitBtn?.setAttribute('disabled', 'true');
       });
 
-      const textareas = document.querySelectorAll('.auto-resize');
-      textareas.forEach(textarea => {
+      document.getElementById('confirmDeviceChangeBtn')?.addEventListener('click', () => {
+        proceedAfterDeviceConfirm = true;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('deviceTypeModal'));
+        modal.hide();
+        form?.requestSubmit(); // Trigger the original form submit programmatically
+      });
+
+
+      // Auto-resize textareas
+      document.querySelectorAll('.auto-resize').forEach(textarea => {
         const resize = () => {
           textarea.style.height = 'auto';
           textarea.style.height = textarea.scrollHeight + 'px';
@@ -228,7 +276,119 @@
         resize();
         textarea.addEventListener('input', resize);
       });
+
+      // Restore theme from localStorage
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        document.getElementById('themeIcon').className =
+          savedTheme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
+      }
     });
+
+    let isDirty = false;
+    let changedFields = new Set();
+    const originalValues = {};
+    let pendingNavigationURL = null;
+
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+      const key = el.name || el.id;
+      if (key) {
+        originalValues[key] = el.value;
+
+        el.addEventListener('input', () => {
+          const hasChanged = el.value !== originalValues[key];
+          if (hasChanged) {
+            changedFields.add(key);
+          } else {
+            changedFields.delete(key);
+          }
+          isDirty = changedFields.size > 0;
+        });
+      }
+    });
+
+    // Intercept internal navigation (e.g., Back to Dashboard)
+    document.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        if (isDirty && !link.hasAttribute('data-bs-dismiss')) {
+          e.preventDefault();
+          pendingNavigationURL = link.href;
+          showUnsavedModal();
+        }
+      });
+    });
+
+    // Show the modal
+    function showUnsavedModal() {
+      const list = document.getElementById('changedFieldsList');
+      list.innerHTML = '';
+      [...changedFields].forEach(field => {
+        const li = document.createElement('li');
+        li.textContent = field.replace(/_/g, ' ');
+        list.appendChild(li);
+      });
+
+      const modal = new bootstrap.Modal(document.getElementById('unsavedModal'));
+      modal.show();
+    }
+
+    // Proceed with navigation if confirmed
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('confirmLeaveBtn')?.addEventListener('click', () => {
+        if (pendingNavigationURL) {
+          window.location.href = pendingNavigationURL;
+        }
+      });
+    });
+
   </script>
+
+  <!-- Unsaved Changes Modal -->
+  <div class="modal fade" id="unsavedModal" tabindex="-1" aria-labelledby="unsavedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-warning border-3">
+        <div class="modal-header bg-warning-subtle">
+          <h5 class="modal-title text-dark" id="unsavedModalLabel">
+            <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+            Unsaved Changes
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-light">
+          <p>You have unsaved changes in the following fields:</p>
+          <ul id="changedFieldsList" class="mb-3"></ul>
+          <p>Are you sure you want to leave without saving?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Stay</button>
+          <button type="button" id="confirmLeaveBtn" class="btn btn-danger">Leave Anyway</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Device Type Change Modal -->
+  <div class="modal fade" id="deviceTypeModal" tabindex="-1" aria-labelledby="deviceTypeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-info">
+        <div class="modal-header bg-info text-dark">
+          <h5 class="modal-title" id="deviceTypeModalLabel">
+            <i class="bi bi-info-circle-fill me-2"></i>Device Type Changed
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Changing the device type will generate a new device code. Are you sure you want to continue?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmDeviceChangeBtn">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

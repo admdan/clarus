@@ -9,13 +9,16 @@
   style="background-color: #95b8d1;"
 >
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
-  <h1 class="fw-semibold text-black" style="font-family: 'Poppins', sans-serif;">New Ticket</h1>
+  <h3 class="fw-bold text-black d-flex align-items-center">
+    <i class="bi bi-file-earmark-plus-fill me-2 text-black"></i>
+    <span>New Ticket</span>
+  </h3>
   <div class="col-md-6">
-    <label class="form-label text-black">User Name</label>
+    <label class="form-label text-black fw-bold">User Name</label>
     <input type="text" name="user_name" placeholder="Insert name of the user" class="form-control bg-dark-subtle" required>
   </div>
   <div class="col-md-6">
-    <label class="form-label text-black">Device Type</label>
+    <label class="form-label text-black fw-bold">Device Type</label>
     <select name="device_type" class="form-select bg-dark-subtle" required>
       <option disabled selected>Select device type</option>
       <option value="Desktop">Desktop</option>
@@ -29,7 +32,7 @@
     </select>
   </div>
   <div class="col-12">
-    <label class="form-label text-black">Issue Description</label>
+    <label class="form-label text-black fw-bold">Issue Description</label>
     <textarea name="issue_description" placeholder="Explain the issue here" class="form-control bg-dark-subtle" rows="4" required></textarea>
   </div>
   <div class="col-12 d-flex justify-content-end">
