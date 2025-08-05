@@ -9,6 +9,7 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
   />
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -228,6 +229,11 @@
         opacity: 0;
       }
     }
+
+    body.modal-open {
+      padding-right: 0 !important;
+    }
+
   </style>
 </head>
 
@@ -248,200 +254,320 @@
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div id="main-content" class="hidden">
-
-    <!-- Animated Background -->
+  <!-- Animated Background -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none">
       <div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
       <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brandBlue/10 rounded-full blur-3xl animate-float"></div>
       <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-brandBlue/5 rounded-full blur-3xl animate-float" style="animation-delay: 2s;"></div>
     </div>
 
-    <!-- Theme Toggle -->
-    <div class="fixed top-6 right-6 z-50">
-      <button onclick="document.documentElement.classList.toggle('dark')" class="glass-effect p-3 rounded-full hover:scale-110 transition-all duration-300 group">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 dark:hidden text-brandYellow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path d="M12 3v1m0 16v1m8.485-8.485h1M3.515 12.515h1M16.95 7.05l.707.707M6.343 17.657l.707.707M7.05 7.05L6.343 6.343M17.657 17.657l-.707.707M12 5a7 7 0 100 14 7 7 0 000-14z"/>
-        </svg>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden dark:block text-brandBlue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path d="M21 12.79A9 9 0 0111.21 3 7 7 0 0012 21a9 9 0 009-8.21z" />
-        </svg>
-      </button>
-    </div>
+  <!-- Layout -->
+  <div id="main-content" class="grid grid-cols-[minmax(100px,120px)_1fr_minmax(48px,60px)]
+            gap-6 w-full px-6 py-10 relative z-10">
+      <!-- Left Sidebar -->
+      <aside class="space-y-6 flex flex-col">
+        <!-- My Info -->
+        <div class="glass-effect rounded-xl p-4 flex flex-col">
+          <h3 class="text-lg font-bold text-white mb-2">My Info</h3>
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="text-gray-300">Role:</span>
+            <span class="px-4 py-1 bg-brandBlue text-white font-medium rounded-full shadow-lg whitespace-nowrap">
+              {{ current_user.role | capitalize }}
+            </span>
+          </div>
+        </div>
 
-    <!-- Container -->
-    <div class="max-w-7xl mx-auto px-6 py-10 relative z-10">
+        <!-- Quick Stats (Only for privileged roles) -->
+        {% if current_user.role in ['admin','support','hr'] %}
+        <div class="glass-effect rounded-xl p-4">
+          <h3 class="text-lg font-bold text-white mb-2">Quick Stats</h3>
+          <p class="text-gray-300">Pending Tickets: 12</p>
+        </div>
+        {% endif %}
+      </aside>
 
-      <!-- Header -->
-      <div class="glass-effect rounded-2xl p-8 mb-12 transform hover:scale-[1.02] transition-all duration-500 animate-weave">
-        <div class="flex flex-col lg:flex-row items-center justify-between">
-          <div class="text-center lg:text-left mb-6 lg:mb-0">
-            <h1 class="text-5xl font-bold text-white mb-3">
-              {{ welcome_message }}
-            </h1>
-            <div class="flex items-center justify-center lg:justify-start gap-3">
-              <span class="text-lg text-gray-300">Role:</span>
-              <span class="px-4 py-2 bg-brandBlue text-white font-medium rounded-full shadow-lg">
-                {{ current_user.role | capitalize }}
-              </span>
+      <!-- Main content -->
+      <main class="space-y-6 flex flex-column">
+        <!-- Container -->
+        <div class="max-w-7xl mx-auto px-6 py-10 relative z-10">
+
+          <!-- Header -->
+          <div class="glass-effect rounded-2xl p-8 mb-12 transform hover:scale-[1.02] transition-all duration-500 animate-weave">
+            <div class="flex flex-col lg:flex-row items-center justify-between">
+              <div class="text-center lg:text-left mb-6 lg:mb-0">
+                <h1 class="text-5xl font-bold text-white mb-3">
+                  {{ welcome_message }}
+                </h1>
+              </div>
+              <a href="{{ url_for('routes.logout') }}" class="group relative px-8 py-3 bg-brandRed text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <span class="relative z-10">Logout</span>
+              </a>
             </div>
           </div>
-          <a href="{{ url_for('routes.logout') }}" class="group relative px-8 py-3 bg-brandRed text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-            <span class="relative z-10">Logout</span>
-          </a>
-        </div>
-      </div>
 
-      <!-- Flash Message -->
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            {% if category == 'login_success' %}
-              <div class="mb-8 text-center glass-effect rounded-xl p-4 border-l-4 border-brandYellow animate-pulse">
-                <div class="text-brandYellow font-medium">{{ message }}</div>
-              </div>
+          <!-- Flash Message -->
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                {% if category == 'login_success' %}
+                  <div class="mb-8 text-center glass-effect rounded-xl p-4 border-l-4 border-brandYellow animate-pulse">
+                    <div class="text-brandYellow font-medium">{{ message }}</div>
+                  </div>
+                {% endif %}
+              {% endfor %}
             {% endif %}
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
+          {% endwith %}
 
-      <!-- Module Section -->
-      <div class="mb-8">
-        <h2 class="text-3xl font-bold text-center mb-4 text-white">
-          Available Modules
-        </h2>
-        <div class="w-32 h-1 bg-brandBlue mx-auto rounded-full"></div>
-      </div>
+          <!-- Toggleable Notification Box -->
+          <div id="notificationBox" class="glass-effect p-6 mb-10 border-l-4 border-brandLightYellow rounded-xl shadow animate-fadeIn hidden"
+               hx-get="{{ url_for('routes.portal') }}"
+               hx-target="#notificationBox"
+               hx-swap="outerHTML">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-2xl font-bold text-brandYellow flex items-center gap-2">
+                <i class="bi bi-bell-fill text-xl text-brandYellow"></i> Notifications
+              </h3>
+            </div>
 
-      <!-- Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {% if notifications %}
+              <ul class="space-y-4">
+                {% for note in notifications %}
+                  <li class="p-4 bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm text-gray-400">From: <strong>{{ note.sender_name }}</strong></span>
+                      <span class="text-xs text-gray-500">{{ note.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+                    </div>
+                    <p class="text-gray-200 text-sm leading-relaxed">{{ note.message }}</p>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-gray-400 text-sm">No notifications at the moment.</p>
+            {% endif %}
+          </div>
 
-        {% if 'troubleshooting' in modules %}
-        <div class="perspective-card">
-          <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
-            <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div class="relative z-10">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
-                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white">IT Support</h3>
+          <!-- Inline New Reminder Box (hidden by default) -->
+          <div id="newReminderBox"
+               class="glass-effect p-6 mb-10 border-l-4 border-brandYellow rounded-xl shadow animate-fadeIn hidden">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-2xl font-bold text-brandYellow flex items-center gap-2">
+                <i class="bi bi-pencil-square text-xl text-brandYellow"></i> Post a New Reminder
+              </h3>
+              <button id="closeReminderBtn"
+                      class="text-gray-400 hover:text-white transition">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <form hx-post="{{ url_for('routes.post_notification') }}"
+                  hx-target="#notificationBox"
+                  hx-swap="outerHTML"
+                  class="space-y-4">
+
+              <div>
+                <label class="form-label">Message <span class="text-red-500">*</span></label>
+                <textarea name="message"
+                          class="form-control bg-dark-subtle text-white"
+                          rows="4" required></textarea>
               </div>
-              <p class="text-gray-300 mb-6 leading-relaxed">Manage and resolve IT support tickets with advanced troubleshooting tools.</p>
-              <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                Open Dashboard
-              </a>
+
+              <div>
+                <label class="form-label">Target Role (optional)</label>
+                <select name="target_role" class="form-select bg-dark-subtle text-white">
+                  <option value="">All users</option>
+                  <option value="user">User</option>
+                  <option value="support">Support</option>
+                  <option value="hr">HR</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label">Specific Username (optional)</label>
+                <input type="text" name="recipient_username"
+                       class="form-control bg-dark-subtle text-white"
+                       placeholder="e.g. admdan">
+              </div>
+
+              <div class="mt-4 flex justify-end gap-3">
+                <button type="button" id="cancelReminderBtn"
+                        class="btn btn-secondary">Cancel</button>
+                <button type="submit"
+                        class="btn btn-warning text-black fw-bold">Post Reminder</button>
+              </div>
+            </form>
+          </div>
+
+
+          <!-- Module Section -->
+          <div class="mb-8">
+            <h2 class="text-3xl font-bold text-center mb-4 text-white">
+              Available Modules
+            </h2>
+            <div class="w-32 h-1 bg-brandBlue mx-auto rounded-full"></div>
+          </div>
+
+          <!-- Cards Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+
+            {% if 'troubleshooting' in modules %}
+            <div class="perspective-card">
+              <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
+                <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative z-10">
+                  <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">IT Support</h3>
+                  </div>
+                  <p class="text-gray-300 mb-6 leading-relaxed">Manage and resolve IT support tickets with advanced troubleshooting tools.</p>
+                  <a href="{{ url_for('troubleshooting.troubleshooting_dashboard') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                    Open Dashboard
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if 'inventory' in modules %}
+            <div class="perspective-card">
+              <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
+                <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative z-10">
+                  <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Asset Inventory</h3>
+                  </div>
+                  <p class="text-gray-300 mb-6 leading-relaxed">Track and manage organizational IT assets with comprehensive monitoring.</p>
+                  <a href="{{ url_for('routes.aims') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                    Access Inventory
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if 'eip' in modules %}
+            <div class="perspective-card">
+              <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
+                <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative z-10">
+                  <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Employee Portal</h3>
+                  </div>
+                  <p class="text-gray-300 mb-6 leading-relaxed">View and manage employee identity data with secure access controls.</p>
+                  <a href="{{ url_for('eip.eip_dashboard') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                    Open EIP
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if 'profile' in modules %}
+            <div class="perspective-card">
+              <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
+                <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative z-10">
+                  <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Profile Management</h3>
+                  </div>
+                  <p class="text-gray-300 mb-6 leading-relaxed">Edit and view your personal profile information and preferences.</p>
+                  <a href="{{ url_for('profile.view_profile') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                    Manage Profile
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if 'manage_role' in modules %}
+            <div class="perspective-card">
+              <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
+                <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative z-10">
+                  <div class="flex items-center gap-4 mb-6">
+                    <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
+                      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Manage Roles</h3>
+                  </div>
+                  <p class="text-gray-300 mb-6 leading-relaxed">Change access levels and permissions for users in the system.</p>
+                  <a href="{{ url_for('routes.manage_role') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+                    Open Role Manager
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+          </div>
+
+          <!-- Footer -->
+          <div class="mt-16 text-center">
+            <div class="inline-flex items-center gap-2 text-gray-400">
+              <div class="w-2 h-2 bg-brandBlue rounded-full animate-pulse"></div>
+              <div class="w-2 h-2 bg-brandYellow rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
+              <div class="w-2 h-2 bg-brandRed rounded-full animate-pulse" style="animation-delay: 1s;"></div>
+              <span class="ml-2">Powered by Clarus</span>
             </div>
           </div>
         </div>
-        {% endif %}
+      </main>
 
-        {% if 'inventory' in modules %}
-        <div class="perspective-card">
-          <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
-            <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div class="relative z-10">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
-                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                  </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white">Asset Inventory</h3>
-              </div>
-              <p class="text-gray-300 mb-6 leading-relaxed">Track and manage organizational IT assets with comprehensive monitoring.</p>
-              <a href="{{ url_for('routes.aims') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                Access Inventory
-              </a>
-            </div>
-          </div>
+      <!-- Right Sidebar -->
+      <aside class="flex justify-center h-full">
+        <div class="flex flex-col gap-3 items-center justify-start w-full py-4  ">
+          <button onclick="document.documentElement.classList.toggle('dark')" class="glass-effect w-12 h-12 flex items-center justify-center rounded-full hover:scale-110 transition-all duration-300">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 dark:hidden text-brandYellow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M12 3v1m0 16v1m8.485-8.485h1M3.515 12.515h1M16.95 7.05l.707.707M6.343 17.657l.707.707M7.05 7.05L6.343 6.343M17.657 17.657l-.707.707M12 5a7 7 0 100 14 7 7 0 000-14z"/>
+              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden dark:block text-brandBlue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M21 12.79A9 9 0 0111.21 3 7 7 0 0012 21a9 9 0 009-8.21z" />
+              </svg>
+          </button>
+          <button id="toggleNotificationBtn"
+              class="glass-effect w-12 h-12 flex items-center justify-center rounded-full hover:scale-110 transition-all duration-300"
+              title="Toggle Notifications">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-brandYellow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+          </button>
+          {% if current_user.role in ['admin', 'hr', 'support'] %}
+          <button id="toggleReminderBtn"
+                  class="glass-effect w-12 h-12 flex items-center justify-center rounded-full hover:scale-110 transition-all duration-300"
+                  title="Post New Reminder">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   class="h-6 w-6 text-brandYellow"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M4 4h16v12H4z" />
+                <path d="M4 4l8 6 8-6" />
+              </svg>
+          </button>
+          {% endif %}
         </div>
-        {% endif %}
-
-        {% if 'eip' in modules %}
-        <div class="perspective-card">
-          <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
-            <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div class="relative z-10">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
-                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                  </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white">Employee Portal</h3>
-              </div>
-              <p class="text-gray-300 mb-6 leading-relaxed">View and manage employee identity data with secure access controls.</p>
-              <a href="{{ url_for('eip.eip_dashboard') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                Open EIP
-              </a>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if 'profile' in modules %}
-        <div class="perspective-card">
-          <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
-            <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div class="relative z-10">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
-                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                  </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white">Profile Management</h3>
-              </div>
-              <p class="text-gray-300 mb-6 leading-relaxed">Edit and view your personal profile information and preferences.</p>
-              <a href="{{ url_for('profile.view_profile') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                Manage Profile
-              </a>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if 'manage_role' in modules %}
-        <div class="perspective-card">
-          <div class="card-3d glass-effect rounded-2xl p-8 module-glow group cursor-pointer">
-            <div class="shimmer-bg absolute inset-0 rounded-2xl animate-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <div class="relative z-10">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-12 h-12 bg-brandBlue rounded-xl flex items-center justify-center shadow-lg">
-                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                  </svg>
-                </div>
-                <h3 class="text-xl font-bold text-white">Manage Roles</h3>
-              </div>
-              <p class="text-gray-300 mb-6 leading-relaxed">Change access levels and permissions for users in the system.</p>
-              <a href="{{ url_for('routes.manage_role') }}" class="inline-block bg-brandBlue text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                Open Role Manager
-              </a>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
-      </div>
-
-      <!-- Footer -->
-      <div class="mt-16 text-center">
-        <div class="inline-flex items-center gap-2 text-gray-400">
-          <div class="w-2 h-2 bg-brandBlue rounded-full animate-pulse"></div>
-          <div class="w-2 h-2 bg-brandYellow rounded-full animate-pulse" style="animation-delay: 0.5s;"></div>
-          <div class="w-2 h-2 bg-brandRed rounded-full animate-pulse" style="animation-delay: 1s;"></div>
-          <span class="ml-2">Powered by Clarus</span>
-        </div>
-      </div>
-    </div>
+      </aside>
   </div>
-
   <script>
     const phrases = [
       'Weaving your digital threads.',
@@ -500,9 +626,30 @@
             main.classList.remove('hidden');
             main.style.animation = 'fadeIn 1s ease-in-out';
           }, 400);
-        }, 7000); // loader duration
+        }, 7000); // loader duration was 7000
       });
   </script>
+  <script>
+    const toggleBtn = document.getElementById('toggleNotificationBtn');
+    const notificationBox = document.getElementById('notificationBox');
 
+    toggleBtn.addEventListener('click', () => {
+      notificationBox.classList.toggle('hidden');
+    });
+  </script>
+  <script>
+    const toggleReminderBtn = document.getElementById('toggleReminderBtn');
+    const newReminderBox = document.getElementById('newReminderBox');
+    const closeReminderBtn = document.getElementById('closeReminderBtn');
+    const cancelReminderBtn = document.getElementById('cancelReminderBtn');
+
+    function toggleReminder() {
+      newReminderBox.classList.toggle('hidden');
+    }
+
+    toggleReminderBtn.addEventListener('click', toggleReminder);
+    closeReminderBtn.addEventListener('click', toggleReminder);
+    cancelReminderBtn.addEventListener('click', toggleReminder);
+  </script>
 </body>
 </html>

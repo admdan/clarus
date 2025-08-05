@@ -174,7 +174,6 @@ def reset_password(token):
 @login_required
 def portal():
     modules = []
-
     role = getattr(current_user, 'role', 'basic')
 
     if role in ['admin']:
@@ -186,11 +185,35 @@ def portal():
     if role in ['admin', 'hr', 'support']:
         modules.append('eip')
 
-    modules.append('profile')  # Everyone can see their own profile
+    modules.append('profile')
 
     welcome_message = f"Welcome back, {current_user.username}!"
 
-    return render_template('portal.html', modules=modules, welcome_message=welcome_message)
+    # Fetch notifications for this user
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT n.*, u.username AS sender_name
+        FROM notifications n
+        JOIN users u ON u.id = n.sender_id
+        WHERE 
+            (n.recipient_id IS NULL AND n.target_role IS NULL) OR
+            (n.recipient_id = %s) OR
+            (n.target_role = %s)
+        ORDER BY n.created_at DESC
+        LIMIT 10
+    """, (current_user.id, role))
+
+    notifications = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('portal.html',
+                           modules=modules,
+                           welcome_message=welcome_message,
+                           notifications=notifications)
+
 
 @bp.route('/manage-role')
 @login_required
@@ -209,3 +232,46 @@ def manage_role():
 @roles_required('admin', 'hr', 'support')
 def aims():
     return redirect(url_for('asset.inventory_dashboard'))
+
+@bp.route('/post-notification', methods=['POST'])
+@login_required
+@roles_required('admin', 'hr', 'support')
+def post_notification():
+    message = request.form.get('message', '').strip()
+    target_role = request.form.get('target_role', '').strip() or None
+    recipient_username = request.form.get('recipient_username', '').strip() or None
+
+    if not message:
+        flash("Message cannot be empty.", "danger")
+        return redirect(url_for('routes.portal'))
+
+    recipient_id = None
+
+    # If a specific user is targeted, look them up
+    if recipient_username:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM users WHERE username = %s", (recipient_username,))
+        user = cursor.fetchone()
+        if not user:
+            flash(f"User '{recipient_username}' not found.", "danger")
+            cursor.close()
+            conn.close()
+            return redirect(url_for('routes.portal'))
+        recipient_id = user['id']
+        cursor.close()
+        conn.close()
+
+    # Insert notification into DB
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO notifications (sender_id, recipient_id, target_role, message)
+        VALUES (%s, %s, %s, %s)
+    """, (current_user.id, recipient_id, target_role, message))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash("Notification posted successfully.", "success")
+    return redirect(url_for('routes.portal'))
