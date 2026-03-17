@@ -113,3 +113,18 @@ uv.lock
 # File Uploads
 /app/static/uploads/
 
+# Local temp/work folders
+.codex-tmp/
+.venv_py313_broken/
+
+# Node packages
+node_modules/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Optional local logs
+*.out
+
+
