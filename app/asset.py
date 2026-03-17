@@ -1,4 +1,6 @@
-# asset.py
+import psycopg2
+import psycopg2.extras
+from psycopg2 import errorcodes
 from flask import Blueprint, render_template, request, redirect, url_for, flash, Response, make_response
 from flask_login import login_required, current_user
 from .db import get_db_connection
@@ -14,7 +16,6 @@ asset_bp = Blueprint('asset', __name__, url_prefix='/assets')
 @login_required
 @roles_required('admin', 'hr', 'support')
 def inventory_dashboard():
-
     # Filters & search
     device_type = request.args.get('device_type')
     status = request.args.get('status')
@@ -26,7 +27,7 @@ def inventory_dashboard():
     offset = (page - 1) * per_page
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     query = '''
             SELECT a.*, u.username AS assigned_user
@@ -38,7 +39,7 @@ def inventory_dashboard():
                   SELECT COUNT(*) as total
                   FROM assets a
                            LEFT JOIN users u ON a.assigned_to = u.id
-                  WHERE 1=1
+                  WHERE 1 = 1
                   '''
     values = []
 
@@ -51,8 +52,8 @@ def inventory_dashboard():
         count_query += ' AND a.status = %s'
         values.append(status)
     if search:
-        query += ' AND (a.serial_number LIKE %s OR u.username LIKE %s)'
-        count_query += ' AND (a.serial_number LIKE %s OR u.username LIKE %s)'
+        query += ' AND (a.serial_number ILIKE %s OR u.username ILIKE %s)'
+        count_query += ' AND (a.serial_number ILIKE %s OR u.username ILIKE %s)'
         values.extend([f"%{search}%", f"%{search}%"])
 
     # Limit & offset
@@ -70,7 +71,6 @@ def inventory_dashboard():
     conn.close()
 
     total_pages = (total + per_page - 1 ) // per_page
-
     base_query = request.args.to_dict()
     base_query.pop('page', None)  # Remove existing page param if present
 
@@ -81,14 +81,22 @@ def inventory_dashboard():
         'pages': [url_for('asset.inventory_dashboard', **base_query, page=p) for p in range(1, total_pages + 1)]
     }
 
-    return render_template('aims.html', assets=assets, page=page, total_pages=total_pages, total=total, base_query=base_query, pagination_urls=pagination_urls)
+    return render_template(
+        'aims.html',
+        assets=assets,
+        page=page,
+        total_pages=total_pages,
+        total=total,
+        base_query=base_query,
+        pagination_urls=pagination_urls
+    )
 
 @asset_bp.route('/add', methods=['GET', 'POST'])
 @login_required
 @roles_required('admin', 'hr', 'support')
 def add_asset():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     if request.method == 'POST':
         device_type = request.form['device_type']
@@ -101,7 +109,8 @@ def add_asset():
         purchase_date = request.form['purchase_date']
         manufacturer = request.form['manufacturer'] or None
         remarks = request.form['remarks'] or None
-        assigned_to = request.form.get('assigned_to') or None
+        assigned_to_raw = request.form.get('assigned_to')
+        assigned_to = int(assigned_to_raw) if assigned_to_raw else None
         warranty_end = request.form['warranty_end'] or None
         location = request.form['location'] or None
         ip_mac = request.form['ip_mac'] or None
@@ -113,22 +122,32 @@ def add_asset():
             flash("Please fill in all required fields.", "danger")
             return redirect(request.url)
 
-        cursor.execute('''
-                       INSERT INTO assets 
-                       (device_type, serial_number, `condition`, status, assigned_to, date_assigned, remarks, added_by,
-                        model, manufacturer, purchase_date, warranty_end, location, ip_mac, asset_tag, invoice_ref)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
-                               %s, %s, %s, %s, %s, %s, %s, %s)
-                       ''',
-                       (device_type, serial_number, condition, status, assigned_to, date_assigned, remarks, added_by,
-                        model, manufacturer, purchase_date, warranty_end, location, ip_mac, asset_tag, invoice_ref))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        flash("Asset added successfully!", "success")
-        return redirect(url_for('asset.inventory_dashboard'))
+        try:
+            cursor.execute('''
+                           INSERT INTO assets 
+                           (device_type, serial_number, "condition", status, assigned_to, date_assigned, remarks, added_by,
+                            model, manufacturer, purchase_date, warranty_end, location, ip_mac, asset_tag, invoice_ref)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                                   %s, %s, %s, %s, %s, %s, %s, %s)
+                           ''',
+                           (device_type, serial_number, condition, status, assigned_to, date_assigned, remarks, added_by,
+                            model, manufacturer, purchase_date, warranty_end, location, ip_mac, asset_tag, invoice_ref))
+            conn.commit()
+            flash("Asset added successfully!", "success")
+            return redirect(url_for('asset.inventory_dashboard'))
+        except psycopg2.Error as e:
+            conn.rollback()
+            if e.pgcode == errorcodes.UNIQUE_VIOLATION:
+                flash("An asset with that serial number already exists.", "danger")
+            else:
+                flash("Unable to save the asset right now. Please try again.", "danger")
+        finally:
+            cursor.close()
+            conn.close()
 
-    cursor.execute('''SELECT id, username FROM users''')
+        return redirect(request.url)
+
+    cursor.execute('SELECT id, username FROM users')
     users = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -139,7 +158,7 @@ def add_asset():
 @roles_required('admin', 'hr', 'support')
 def edit_asset(asset_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     if request.method == 'POST':
         device_type = request.form['device_type']
@@ -150,7 +169,8 @@ def edit_asset(asset_id):
         purchase_date = request.form['purchase_date']
         manufacturer = request.form['manufacturer'] or None
         remarks = request.form['remarks'] or None
-        assigned_to = request.form.get('assigned_to') or None
+        assigned_to_raw = request.form.get('assigned_to')
+        assigned_to = int(assigned_to_raw) if assigned_to_raw else None
         warranty_end = request.form['warranty_end'] or None
         location = request.form['location'] or None
         ip_mac = request.form['ip_mac'] or None
@@ -162,32 +182,43 @@ def edit_asset(asset_id):
             flash("Please fill in all required fields.", "danger")
             return redirect(request.url)
 
-        cursor.execute('''
-            UPDATE assets
-            SET device_type = %s,
-                serial_number = %s,
-                `condition` = %s,
-                status = %s,
-                assigned_to = %s,
-                remarks = %s,
-                model = %s,
-                manufacturer = %s,
-                purchase_date = %s,
-                warranty_end = %s,
-                location = %s,
-                ip_mac = %s,
-                asset_tag = %s,
-                invoice_ref = %s,
-                last_updated = CURRENT_TIMESTAMP
-            WHERE asset_id = %s
-        ''', (device_type, serial_number, condition, status, assigned_to, remarks, model, manufacturer,
-              purchase_date, warranty_end, location, ip_mac, asset_tag, invoice_ref, asset_id))
+        try:
+            cursor.execute('''
+                UPDATE assets
+                SET device_type = %s,
+                    serial_number = %s,
+                    "condition" = %s,
+                    status = %s,
+                    assigned_to = %s,
+                    remarks = %s,
+                    model = %s,
+                    manufacturer = %s,
+                    purchase_date = %s,
+                    warranty_end = %s,
+                    location = %s,
+                    ip_mac = %s,
+                    asset_tag = %s,
+                    invoice_ref = %s,
+                    last_updated = CURRENT_TIMESTAMP
+                WHERE asset_id = %s
+            ''', (device_type, serial_number, condition, status, assigned_to, remarks, model, manufacturer,
+                  purchase_date, warranty_end, location, ip_mac, asset_tag, invoice_ref, asset_id
+            ))
 
-        conn.commit()
-        cursor.close()
-        conn.close()
-        flash("Asset updated successfully!", "success")
-        return redirect(url_for('asset.inventory_dashboard'))
+            conn.commit()
+            flash("Asset updated successfully!", "success")
+            return redirect(url_for('asset.inventory_dashboard'))
+        except psycopg2.Error as e:
+            conn.rollback()
+            if e.pgcode == errorcodes.UNIQUE_VIOLATION:
+                flash("Another asset already uses that serial number.", "danger")
+            else:
+                flash("Unable to update the asset right now. Please try again.", "danger")
+        finally:
+            cursor.close()
+            conn.close()
+
+        return redirect(request.url)
 
     # GET method to fetch current asset and user list
     cursor.execute("SELECT * FROM assets WHERE asset_id = %s", (asset_id,))
@@ -227,7 +258,7 @@ def export_csv():
     filename = request.args.get('filename', 'asset_inventory.csv')  # Fallback if none provided
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     query = '''
             SELECT a.*, u.username AS assigned_user
@@ -244,7 +275,7 @@ def export_csv():
         query += ' AND a.status = %s'
         values.append(status)
     if search:
-        query += ' AND (a.serial_number LIKE %s OR u.username LIKE %s)'
+        query += ' AND (a.serial_number ILIKE %s OR u.username ILIKE %s)'
         values.extend([f"%{search}%", f"%{search}%"])
 
     cursor.execute(query, tuple(values))
@@ -291,7 +322,7 @@ def export_csv():
 @roles_required('admin', 'hr', 'support')
 def export_pdf(asset_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     cursor.execute('''
         SELECT a.*, u.username AS assigned_user
@@ -329,7 +360,7 @@ def export_pdf_all():
     filename = request.args.get('filename', 'asset_inventory.pdf')
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     query = '''
         SELECT a.*, u.username AS assigned_user
@@ -346,7 +377,7 @@ def export_pdf_all():
         query += ' AND a.status = %s'
         values.append(status)
     if search:
-        query += ' AND (a.serial_number LIKE %s OR u.username LIKE %s)'
+        query += ' AND (a.serial_number ILIKE %s OR u.username ILIKE %s)'
         values.extend([f"%{search}%", f"%{search}%"])
 
     cursor.execute(query, tuple(values))
@@ -355,7 +386,9 @@ def export_pdf_all():
     conn.close()
 
     html = render_template('asset_list.html', assets=assets)
-    pdf = HTML(string=html).write_pdf(stylesheets=[CSS(string='@page { size: A4; margin: 1cm; }')])
+    pdf = HTML(string=html).write_pdf(
+        stylesheets=[CSS(string='@page { size: A4; margin: 1cm; }')]
+    )
 
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
@@ -370,16 +403,20 @@ def export_pdf_all():
 def log_export_event(filename, export_type, is_single_asset=False, filters_applied=None, asset_ids=None):
     conn = get_db_connection()
     cursor = conn.cursor()
+
     filters_json = json.dumps(filters_applied or {})
     asset_id_str = json.dumps(asset_ids) if asset_ids else None
     asset_count = len(asset_ids) if asset_ids else 0
 
     cursor.execute('''
-        INSERT INTO export_logs (filename, user_id, export_type, is_single_asset, filters_applied,
-                                 exported_asset_ids, num_assets, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-    ''', (filename, current_user.id, export_type, is_single_asset, filters_json,
-          asset_id_str, asset_count))
+                   INSERT INTO export_logs (filename, user_id, export_type, is_single_asset, filters_applied,
+                                            exported_asset_ids, num_assets, timestamp)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                   ''', (
+                       filename, current_user.id, export_type, int(is_single_asset),
+                       filters_json, asset_id_str, asset_count
+    ))
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -389,7 +426,8 @@ def log_export_event(filename, export_type, is_single_asset=False, filters_appli
 @roles_required('admin')
 def view_export_logs():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
     cursor.execute('''
         SELECT el.*, u.username
         FROM export_logs el
@@ -412,5 +450,3 @@ def view_export_logs():
             log['asset_ids'] = []
 
     return render_template('export_logs.html', logs=logs)
-
-

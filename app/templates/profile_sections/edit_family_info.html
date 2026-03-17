@@ -1,7 +1,7 @@
 <div id="family-info-container">
     <form hx-post="{{ url_for('profile.update_family_info') }}?user_id={{ user_id }}"
-          hx-target="#family-info-container"
-          hx-swap="innerHTML"
+          hx-target="#family-info-section"
+          hx-swap="outerHTML"
           class="card shadow-sm mb-4">
         <div class="card-header">
             <h5 class="mb-0">Edit Marital Status</h5>

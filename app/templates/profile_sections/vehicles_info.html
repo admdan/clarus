@@ -10,7 +10,7 @@
         <button class="btn btn-sm btn-success"
                 hx-get="{{ url_for('profile.add_vehicles_info') }}?user_id={{ user_id }}"
                 hx-target="#vehicles-info-container"
-                hx-swap="innerHTML">Add Vehicle</button>
+                hx-swap="outerHTML">Add Vehicle</button>
     </div>
     {% if vehicles %}
         <ul class="list-group list-group-flush">
@@ -22,11 +22,11 @@
                         <button class="btn btn-sm btn-primary"
                                 hx-get="{{ url_for('profile.edit_vehicles_info', vehicle_id=v.id) }}?user_id={{ user_id }}"
                                 hx-target="#vehicles-info-container"
-                                hx-swap="innerHTML">Edit</button>
+                                hx-swap="outerHTML">Edit</button>
                         <button class="btn btn-sm btn-danger"
                                 hx-post="{{ url_for('profile.delete_vehicles_info', vehicle_id=v.id) }}?user_id={{ user_id }}"
                                 hx-target="#vehicles-info-container"
-                                hx-swap="innerHTML"
+                                hx-swap="outerHTML"
                                 hx-confirm="Are you sure you want to delete this vehicle?">Delete</button>
                     </div>
                 </li>

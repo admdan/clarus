@@ -4,9 +4,10 @@
         <h5 class="card-title">Document Uploads</h5>
 
         <form
-          hx-post="{{ url_for('profile.upload_documents') }}"
+          hx-post="{{ url_for('profile.upload_documents') }}?user_id={{ user_id }}"
           hx-target="#document-upload-section"
           hx-swap="outerHTML"
+          hx-encoding="multipart/form-data"
           enctype="multipart/form-data"
           class="row g-3 mb-4"
         >
@@ -57,7 +58,7 @@
                   >Toggle Preview</button>
                   <button
                     class="btn btn-sm btn-danger"
-                    hx-post="{{ url_for('profile.delete_document', doc_id=doc.id) }}"
+                    hx-post="{{ url_for('profile.delete_document', doc_id=doc.id) }}?user_id={{ user_id }}"
                     hx-target="#document-upload-section"
                     hx-swap="outerHTML"
                     onclick="return confirm('Are you sure you want to delete this document?')"

@@ -1,9 +1,10 @@
+import psycopg2.extras
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from .db import get_db_connection
 from .routes import roles_required
 from datetime import datetime
-from .profile_utils import update_field_and_timestamp
+from .profile_utils import create_empty_profile_if_missing
 
 eip_bp = Blueprint('eip', __name__, url_prefix='/eip')
 
@@ -26,14 +27,14 @@ def eip_dashboard():
         params.append(status_filter)
 
     if search_query:
-        conditions.append("(u.username LIKE %s OR u.email LIKE %s)")
+        conditions.append("(u.username ILIKE %s OR u.email ILIKE %s)")
         like_value = f"%{search_query}%"
         params.extend([like_value, like_value])
 
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     count_query = f"""
         SELECT COUNT(*) AS total
@@ -45,6 +46,7 @@ def eip_dashboard():
     total_requests = cursor.fetchone()['total']
     total_pages = (total_requests + per_page - 1) // per_page
 
+    # Main query for paginated data
     main_query = f"""
         SELECT cr.id, 
                u.id AS user_id,
@@ -91,13 +93,12 @@ def eip_dashboard():
             search_query=search_query
         )
 
-
 @eip_bp.route('/approve/<int:request_id>', methods=['POST'])
 @login_required
 @roles_required('admin', 'hr', 'support')
 def approve_change_request(request_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     # Get a change request
     cursor.execute("SELECT * FROM change_requests WHERE id = %s", (request_id,))
@@ -105,6 +106,8 @@ def approve_change_request(request_id):
 
     if not req or req['status'] != 'Pending':
         flash("Invalid or already processed request.", "danger")
+        cursor.close()
+        conn.close()
         return redirect(url_for('eip.eip_dashboard'))
 
     field = req['field_requested']
@@ -148,6 +151,8 @@ def approve_change_request(request_id):
 
     if field not in field_map:
         flash(f"Field '{field}' is not supported for auto-update.", "warning")
+        cursor.close()
+        conn.close()
         return redirect(url_for('eip.eip_dashboard'))
 
     table, column = field_map[field]
@@ -158,12 +163,37 @@ def approve_change_request(request_id):
             datetime.strptime(value, "%Y-%m-%d")
         except ValueError:
             flash("Date must be in YYYY-MM-DD format.", "danger")
+            cursor.close()
+            conn.close()
             return redirect(url_for('eip.eip_dashboard'))
 
     # ───── EXECUTE UPDATE ─────
     try:
-        # Apply the value + timestamp in one go
-        update_field_and_timestamp(table, column, value, user_id)
+        if table in {'user_profile', 'user_pii', 'user_employment', 'user_banking', 'user_family'}:
+            create_empty_profile_if_missing(user_id)
+
+        if table == 'user_vehicles':
+            cursor.execute("SELECT COUNT(*) AS total FROM user_vehicles WHERE user_id = %s", (user_id,))
+            vehicle_count = cursor.fetchone()['total']
+            if vehicle_count != 1:
+                flash(
+                    "Vehicle change requests need manual review when a user has multiple vehicle records.",
+                    "warning"
+                )
+                return redirect(url_for('eip.eip_dashboard'))
+
+        cursor.execute(
+            f"""
+            UPDATE {table}
+            SET {column} = %s,
+                last_updated = CURRENT_TIMESTAMP
+            WHERE user_id = %s
+            """,
+            (value, user_id)
+        )
+
+        if cursor.rowcount == 0:
+            raise ValueError(f"No matching record found for {table}.{column}")
 
         # Update change_requests status
         cursor.execute("""
@@ -187,7 +217,6 @@ def approve_change_request(request_id):
         conn.close()
 
     return redirect(url_for('eip.eip_dashboard'))
-
 
 @eip_bp.route('/decline/<int:request_id>', methods=['POST'])
 @login_required

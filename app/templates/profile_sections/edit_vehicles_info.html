@@ -2,7 +2,7 @@
     <form
         hx-post="{{ url_for('profile.edit_vehicles_info', vehicle_id=vehicle.id) if vehicle else url_for('profile.add_vehicles_info') }}?user_id={{ user_id }}"
         hx-target="#vehicles-info-container"
-        hx-swap="innerHTML"
+        hx-swap="outerHTML"
         class="card shadow-sm mb-4"
     >
         <div class="card-header">
@@ -77,7 +77,7 @@
                     class="btn btn-secondary"
                     hx-get="{{ url_for('profile.vehicles_info') }}?user_id={{ user_id }}"
                     hx-target="#vehicles-info-container"
-                    hx-swap="innerHTML">Cancel</button>
+                    hx-swap="outerHTML">Cancel</button>
         </div>
     </form>
 </div>
@@ -133,7 +133,7 @@ function submitChangeRequest(e) {
   const new_value = document.getElementById('newValue').value;
   const note = document.getElementById('changeNote').value;
 
-  fetch("/profile/request_change", {
+  fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ field, new_value, note })

@@ -1,10 +1,10 @@
+import psycopg2.extras
 from flask import Blueprint, request, render_template, redirect, url_for, flash, abort
 from flask_login import login_required, current_user
 from .db import get_db_connection
 from .routes import roles_required
 
 role = Blueprint('role', __name__)
-
 
 @role.route('/update-role/<int:user_id>', methods=['POST'])
 @login_required
@@ -15,12 +15,15 @@ def update_role(user_id):
         return "Invalid role", 400
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cursor.execute("UPDATE users SET role = %s WHERE id = %s", (new_role, user_id))
     conn.commit()
 
-    # fetch updated user to re-render a row
-    cursor.execute("SELECT id, username, email, role, created_at FROM users WHERE id = %s", (user_id,))
+    # Fetch updated user to re-render a row
+    cursor.execute(
+        "SELECT id, username, email, role, created_at FROM users WHERE id = %s",
+        (user_id,)
+    )
     user = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -39,13 +42,13 @@ def search_users():
     sort = request.args.get('sort', '').strip()
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     base_query = "SELECT id, username, email, role, created_at FROM users WHERE 1=1"
     params = []
 
     if query:
-        base_query += " AND (username LIKE %s OR email LIKE %s)"
+        base_query += " AND (username ILIKE %s OR email ILIKE %s)"
         params += [f"%{query}%", f"%{query}%"]
 
     if role_filter and role_filter in ['basic', 'support', 'hr', 'admin']:

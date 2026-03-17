@@ -1,7 +1,7 @@
 <div id="pii-info-container">
   <form hx-post="{{ url_for('profile.update_pii_info') }}?user_id={{ user_id }}"
         hx-target="#pii-info-container"
-        hx-swap="innerHTML"
+        hx-swap="outerHTML"
         class="card shadow-sm mb-4">
     <div class="card-header">
       <h5 class="mb-0">Edit PII Info</h5>
@@ -59,7 +59,7 @@
               class="btn btn-secondary"
               hx-get="{{ url_for('profile.pii_info') }}?user_id={{ user_id }}"
               hx-target="#pii-info-container"
-              hx-swap="innerHTML">
+              hx-swap="outerHTML">
         Cancel
       </button>
     </div>

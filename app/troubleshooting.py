@@ -1,4 +1,4 @@
-# app/troubleshooting.py
+import psycopg2.extras
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.routes import roles_required
@@ -12,7 +12,7 @@ troubleshooting_bp = Blueprint('troubleshooting', __name__, url_prefix='/trouble
 @roles_required('admin', 'support')
 def troubleshooting_dashboard():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     # Always fetch 5 most recently updated tickets
     cursor.execute('''
@@ -47,7 +47,7 @@ def troubleshooting_dashboard():
     params = []
 
     if query:
-        sql += " AND (t.user_name LIKE %s OR d.device_code LIKE %s OR t.issue_description LIKE %s)"
+        sql += " AND (t.user_name ILIKE %s OR d.device_code ILIKE %s OR t.issue_description ILIKE %s)"
         q = f"%{query}%"
         params += [q, q, q]
 
@@ -55,23 +55,27 @@ def troubleshooting_dashboard():
         sql += " AND t.status = %s"
         params.append(status_filter)
 
-    sql += " ORDER BY last_updated DESC"
+    sql += " ORDER BY t.last_updated DESC"
     cursor.execute(sql, params)
     filtered_tickets = cursor.fetchall()
 
+    cursor.close()
     conn.close()
 
-    return render_template('troubleshooting.html',
-                           tickets=filtered_tickets,
-                           recently_updated=recently_updated,
-                           query=query,
-                           selected_status=status_filter)
+    return render_template(
+        'troubleshooting.html',
+        tickets=filtered_tickets,
+        recently_updated=recently_updated,
+        query=query,
+        selected_status=status_filter
+    )
 
 @troubleshooting_bp.route('/add', methods=('GET', 'POST'))
 @login_required
+@roles_required('admin', 'support')
 def add_ticket():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     if request.method == 'POST':
         user_name = request.form['user_name']
@@ -92,13 +96,13 @@ def add_ticket():
         prefix = prefix_map.get(device_type, 'OT')
 
         # Generate device_code like PC0002
-        cursor.execute('''SELECT device_code 
-                          FROM devices 
-                          WHERE device_code 
-                                    LIKE %s 
-                          ORDER BY device_code 
-                              DESC LIMIT 1''',
-                       (prefix + '%',))
+        cursor.execute('''
+                       SELECT device_code
+                       FROM devices
+                       WHERE device_code ILIKE %s
+                       ORDER BY device_code DESC
+                       LIMIT 1
+                       ''', (prefix + '%',))
         last = cursor.fetchone()
 
         if last and last['device_code'][len(prefix):].isdigit():
@@ -113,17 +117,18 @@ def add_ticket():
         cursor.execute('''
                        INSERT INTO devices (device_type, device_code)
                        VALUES (%s, %s)
+                       RETURNING device_id
                        ''', (device_type, device_code))
-
-        device_id = cursor.lastrowid
+        device_id = cursor.fetchone()[0]
 
         # Insert into the ticket table
         cursor.execute('''
-                       INSERT INTO tickets (user_name, device_id, issue_description, date_reported)
-                       VALUES (%s, %s, %s, %s)
-                       ''', (user_name, device_id, issue_description, date_reported))
+                       INSERT INTO tickets (user_name, device_id, device_type, issue_description, date_reported)
+                       VALUES (%s, %s, %s, %s, %s)
+                       ''', (user_name, device_id, device_type, issue_description, date_reported))
 
         conn.commit()
+        cursor.close()
         conn.close()
 
         # HTMX or full redirect
@@ -131,6 +136,7 @@ def add_ticket():
             return render_template('partials/confirmation.html', device_code=device_code)
         return redirect(url_for('troubleshooting.confirmation', code=device_code))
 
+    cursor.close()
     conn.close()
 
     # GET Request — serve partial or full form
@@ -140,11 +146,13 @@ def add_ticket():
 
 @troubleshooting_bp.route('/delete/<int:id>', methods=('POST',))
 @login_required
+@roles_required('admin', 'support')
 def delete_ticket(id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM tickets WHERE id = %s', (id,))
     conn.commit()
+    cursor.close()
     conn.close()
     flash('Ticket deleted successfully!', 'success')
     return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
@@ -156,9 +164,11 @@ def confirmation():
 
 
 @troubleshooting_bp.route('/<int:id>', methods=['GET', 'POST'])
+@login_required
+@roles_required('admin', 'support')
 def edit_ticket(id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     # Fetch tickets table
     cursor.execute('''
@@ -167,6 +177,12 @@ def edit_ticket(id):
                    WHERE id = %s''', (id,))
     ticket = cursor.fetchone()
 
+    if not ticket:
+        cursor.close()
+        conn.close()
+        flash("Ticket not found.", "danger")
+        return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
+
     # Fetch devices table
     cursor.execute('''
                    SELECT * 
@@ -174,14 +190,22 @@ def edit_ticket(id):
                    WHERE device_id = %s''', (ticket['device_id'],))
     device = cursor.fetchone()
 
+    if not device:
+        cursor.close()
+        conn.close()
+        flash("Linked device record not found.", "danger")
+        return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
+
     if request.method == 'POST':
         due_date_raw = request.form['due_date']
         due_date = due_date_raw if due_date_raw else None
+        assigned_to = request.form['assigned_to'] or None
 
         new_device_type = request.form['device_type']
         cursor.execute('SELECT device_type, device_code FROM devices WHERE device_id = %s', (ticket['device_id'],))
         current_device = cursor.fetchone()
 
+        # If device type changed, generate a new code
         if new_device_type != current_device['device_type']:
             prefix_map = {
                 'Desktop': 'PC', 'Laptop': 'LP', 'Mobile': 'PH',
@@ -190,7 +214,7 @@ def edit_ticket(id):
             }
             new_prefix = prefix_map.get(new_device_type, 'OT')
             cursor.execute(
-                "SELECT device_code FROM devices WHERE device_code LIKE %s ORDER BY device_code DESC LIMIT 1",
+                "SELECT device_code FROM devices WHERE device_code ILIKE %s ORDER BY device_code DESC LIMIT 1",
                 (new_prefix + '%',))
             last = cursor.fetchone()
 
@@ -215,10 +239,11 @@ def edit_ticket(id):
                            WHERE device_id = %s
                            ''', (new_device_type, ticket['device_id']))
 
-        # Update ticket
+        # Update ticket info
         cursor.execute('''
                        UPDATE tickets
-                       SET device_type       = %s,
+                       SET user_name         = %s,
+                           device_type       = %s,
                            issue_description = %s,
                            troubleshooting   = %s,
                            status            = %s,
@@ -226,20 +251,20 @@ def edit_ticket(id):
                            category          = %s,
                            assigned_to       = %s,
                            due_date          = %s,
-                           last_updated      = %s
+                           last_updated      = CURRENT_TIMESTAMP
                        WHERE id = %s
                        ''', (
-                           request.form['device_type'],
-                           request.form['issue_description'],
-                           request.form['troubleshooting'],
-                           request.form['status'],
-                           request.form['priority'],
-                           request.form['category'],
-                           request.form['assigned_to'],
-                           due_date,
-                           datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                           id
-                       ))
+                            request.form['user_name'],
+                            request.form['device_type'],
+                            request.form['issue_description'],
+                            request.form['troubleshooting'],
+                            request.form['status'],
+                            request.form['priority'],
+                            request.form['category'],
+                            assigned_to,
+                            due_date,
+                            id
+        ))
 
         # Update device info
         cursor.execute('''
@@ -269,9 +294,11 @@ def edit_ticket(id):
                            ticket['device_id']
                        ))
         conn.commit()
+        cursor.close()
         conn.close()
         flash("Troubleshooting and device info updated successfully!", "success")
         return redirect(url_for('troubleshooting.troubleshooting_dashboard'))
 
+    cursor.close()
     conn.close()
     return render_template('edit_ticket.html', ticket=ticket, device=device)

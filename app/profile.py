@@ -17,11 +17,26 @@ from .profile_utils import (
 from werkzeug.utils import secure_filename
 from datetime import datetime, timezone
 import os, uuid, mimetypes, subprocess
+import psycopg2.extras
 
 UPLOAD_FOLDER = os.path.join('app', 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg'}
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/profile')
+
+def get_upload_root():
+    return os.path.join(current_app.root_path, 'static', 'uploads')
+
+def get_username_for_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
+        return row['username'] if row else 'User'
+    finally:
+        cursor.close()
+        conn.close()
 
 def get_target_user_id():
     # Returns the user ID being viewed or edited, ensuring role-based access control.
@@ -38,13 +53,14 @@ def view_profile():
     profile_data = get_full_profile(user_id)
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     cursor.execute('''
-        SELECT * FROM assets
-        WHERE assigned_to = %s
-        ORDER BY asset_id DESC
-    ''', (user_id,))
+                   SELECT *
+                   FROM assets
+                   WHERE assigned_to = %s
+                   ORDER BY asset_id DESC
+                   ''', (user_id,))
     assigned_assets = cursor.fetchall()
 
     cursor.execute("SELECT email, role, username FROM users WHERE id = %s", (user_id,))
@@ -52,44 +68,53 @@ def view_profile():
     cursor.close()
     conn.close()
 
-    return render_template('profile.html', assigned_assets=assigned_assets, profile=profile_data, user_id=user_id, viewed_user_email=user_account['email'],
-    viewed_user_role=user_account['role'])
+    return render_template(
+        'profile.html',
+        assigned_assets=assigned_assets,
+        profile=profile_data,
+        user_id=user_id,
+        viewed_user_email=user_account['email'],
+        viewed_user_role=user_account['role']
+    )
 
 def get_full_profile(user_id):
     conn = get_db_connection()
     profile = {}
-    with conn.cursor(dictionary=True) as cursor:
-        cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
-        profile['basic'] = cursor.fetchone()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+            cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
+            profile['basic'] = cursor.fetchone()
 
-        cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
-        profile['pii'] = cursor.fetchone()
+            cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
+            profile['pii'] = cursor.fetchone()
 
-        cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
-        profile['employment'] = cursor.fetchone()
+            cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
+            profile['employment'] = cursor.fetchone()
 
-        cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
-        profile['bank'] = cursor.fetchone()
+            cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
+            profile['bank'] = cursor.fetchone()
 
-        cursor.execute("SELECT * FROM user_family WHERE user_id = %s", (user_id,))
-        profile['family'] = cursor.fetchone()
+            cursor.execute("SELECT * FROM user_family WHERE user_id = %s", (user_id,))
+            profile['family'] = cursor.fetchone()
 
-        cursor.execute("SELECT * FROM user_spouses WHERE user_id = %s", (user_id,))
-        profile['spouses'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM user_spouses WHERE user_id = %s", (user_id,))
+            profile['spouses'] = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM user_dependents WHERE user_id = %s", (user_id,))
-        profile['dependents'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM user_dependents WHERE user_id = %s", (user_id,))
+            profile['dependents'] = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM user_vehicles WHERE user_id = %s", (user_id,))
-        profile['vehicles'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM user_vehicles WHERE user_id = %s", (user_id,))
+            profile['vehicles'] = cursor.fetchall()
 
-        cursor.execute("SELECT * FROM user_documents WHERE user_id = %s", (user_id,))
-        profile['documents'] = cursor.fetchall()
+            cursor.execute("SELECT * FROM user_documents WHERE user_id = %s", (user_id,))
+            profile['documents'] = cursor.fetchall()
 
-        cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
-        profile['username'] = cursor.fetchone()['username']
+            cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+            username_row = cursor.fetchone()
+            profile['username'] = username_row['username'] if username_row else None
+    finally:
+        conn.close()
 
-    conn.close()
     return profile
 
 @profile_bp.route('/basic')
@@ -97,8 +122,11 @@ def get_full_profile(user_id):
 def basic_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_profile WHERE user_id = %s",
+        (user_id,)
+    )
     profile = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -109,8 +137,11 @@ def basic_info():
 def edit_basic_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_profile WHERE user_id = %s",
+        (user_id,)
+    )
     profile_data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -127,7 +158,7 @@ def update_basic_info():
         'contact_number': request.form.get('contact_number') or None,
         'address': request.form.get('address') or None,
     }
-    update_user_profile(user_id, form_data)
+    update_user_profile(user_id, form_data)  # Uses PostgreSQL-safe function from profile_utils
     updated_profile = get_user_profile(user_id)
     return render_template('profile_sections/basic_info.html', profile=updated_profile, user_id=user_id)
 
@@ -136,8 +167,11 @@ def update_basic_info():
 def pii_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_pii WHERE user_id = %s",
+        (user_id,)
+    )
     pii = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -148,8 +182,11 @@ def pii_info():
 def edit_pii_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_pii WHERE user_id = %s",
+        (user_id,)
+    )
     pii_data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -167,7 +204,7 @@ def update_pii_info():
         'emergency_contact_number': request.form.get('emergency_contact_number') or None,
         'emergency_contact_address': request.form.get('emergency_contact_address') or None,
     }
-    update_user_pii(user_id, form_data)
+    update_user_pii(user_id, form_data) # Uses the PostgreSQL version from profile_utils
     updated_pii = get_user_pii(user_id)
     return render_template('profile_sections/pii_info.html', pii=updated_pii, user_id=user_id)
 
@@ -176,8 +213,11 @@ def update_pii_info():
 def employment_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_employment WHERE user_id = %s",
+        (user_id,)
+    )
     employment = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -188,8 +228,11 @@ def employment_info():
 def edit_employment_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_employment WHERE user_id = %s",
+        (user_id,)
+    )
     employment_data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -207,7 +250,7 @@ def update_employment_info():
         'employment_status': request.form.get('employment_status') or None,
         'supervisor': request.form.get('supervisor') or None,
     }
-    update_user_employment(user_id, form_data)
+    update_user_employment(user_id, form_data) # Uses PostgreSQL-safe version from profile_utils
     updated_employment = get_user_employment(user_id)
     return render_template('profile_sections/employment_info.html', employment=updated_employment, user_id=user_id)
 
@@ -216,8 +259,11 @@ def update_employment_info():
 def banking_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_banking WHERE user_id = %s",
+        (user_id,)
+    )
     banking = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -228,8 +274,11 @@ def banking_info():
 def edit_banking_info():
     user_id = get_target_user_id()
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_banking WHERE user_id = %s",
+        (user_id,)
+    )
     banking_data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -244,7 +293,7 @@ def update_banking_info():
         'bank_account_number': request.form.get('bank_account_number') or None,
         'account_holder_name': request.form.get('account_holder_name') or None,
     }
-    update_user_banking(user_id, form_data)
+    update_user_banking(user_id, form_data) # Uses PostgreSQL-safe function from profile_utils
     updated_banking = get_user_banking(user_id)
     return render_template('profile_sections/banking_info.html', banking=updated_banking, user_id=user_id)
 
@@ -252,7 +301,7 @@ def update_banking_info():
 @login_required
 def vehicles_info():
     user_id = get_target_user_id()
-    vehicles = get_user_vehicles(user_id)
+    vehicles = get_user_vehicles(user_id) # PostgreSQL-ready function in profile_utils
     return render_template('profile_sections/vehicles_info.html', vehicles=vehicles, user_id=user_id)
 
 @profile_bp.route('/add_vehicle_info', methods=['GET', 'POST'])
@@ -359,7 +408,7 @@ def add_spouse_info():
             'spouse_id_number': request.form.get('spouse_id_number'),
             'spouse_address': request.form.get('spouse_address')
         }
-        add_user_spouse(user_id, form_data)
+        add_user_spouse(user_id, form_data) # PostgreSQL version returns ID if needed
         family_data = {
             'family': get_user_family(user_id),
             'spouses': get_user_spouses(user_id),
@@ -389,6 +438,7 @@ def edit_spouse_info(spouse_id):
         }
         return render_template('profile_sections/family_info.html', **family_data)
 
+    # Lookup spouse by ID from list of dicts
     spouses = get_user_spouses(user_id)
     spouse = next((s for s in spouses if s['id'] == spouse_id), None)
     return render_template('profile_sections/edit_spouse_info.html', spouse=spouse, user_id=user_id)
@@ -417,7 +467,7 @@ def add_dependent_info():
             'dependent_birthdate': request.form.get('dependent_birthdate'),
             'dependent_notes': request.form.get('dependent_notes')
         }
-        add_user_dependent(user_id, form_data)
+        add_user_dependent(user_id, form_data) # PostgreSQL version returns new id
         family_data = {
             'family': get_user_family(user_id),
             'spouses': get_user_spouses(user_id),
@@ -447,6 +497,7 @@ def edit_dependent_info(dependent_id):
         }
         return render_template('profile_sections/family_info.html', **family_data)
 
+    # Safely retrieve the specific dependent from the list of dicts
     dependents = get_user_dependents(user_id)
     dependent = next((d for d in dependents if d['id'] == dependent_id), None)
     return render_template('profile_sections/edit_dependent_info.html', dependent=dependent, user_id=user_id)
@@ -467,7 +518,12 @@ def delete_dependent_info(dependent_id):
 def is_file_safe(filepath):
     try:
         abs_path = os.path.abspath(filepath)
-        result = subprocess.run(['clamscan', abs_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
+        result = subprocess.run(
+            ['clamscan', abs_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10
+        )
         return b"Infected files: 0" in result.stdout
     except Exception as e:
         print("Error:", e)
@@ -500,7 +556,7 @@ def upload_documents():
 
     safe_doc_type = doc_type.replace(" ", "_")
     unique_filename = f"user{user_id}-{safe_doc_type}-{uuid.uuid4().hex[:8]}.{ext}"
-    user_folder = os.path.join(UPLOAD_FOLDER, f"user_{user_id}")
+    user_folder = os.path.join(get_upload_root(), f"user_{user_id}")
     os.makedirs(user_folder, exist_ok=True)
 
     file_path = f"user_{user_id}/{unique_filename}"
@@ -515,11 +571,14 @@ def upload_documents():
     with open(save_path, 'wb') as f:
         f.write(file_contents)
 
+    # Scan file for viruses using ClamAV
     if not is_file_safe(save_path):
         os.remove(save_path)
         return "Upload blocked: virus detected.", 400
 
+    # Insert document record in DB
     add_user_document(user_id, doc_type, file_path, display_name=display_name)
+
     documents = get_user_documents(user_id)
     return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
 
@@ -529,8 +588,11 @@ def delete_document(doc_id):
     user_id = get_target_user_id()
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_documents WHERE id = %s AND user_id = %s", (doc_id, user_id))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_documents WHERE id = %s AND user_id = %s",
+        (doc_id, user_id)
+    )
     doc = cursor.fetchone()
 
     if not doc:
@@ -539,7 +601,7 @@ def delete_document(doc_id):
         return "Not found", 404
 
     try:
-        file_full_path = os.path.join(UPLOAD_FOLDER, doc['file_path'])
+        file_full_path = os.path.join(get_upload_root(), doc['file_path'])
         if os.path.exists(file_full_path):
             os.remove(file_full_path)
     except FileNotFoundError:
@@ -557,27 +619,29 @@ def delete_document(doc_id):
 @login_required
 def profile_picture_info():
     user_id = get_target_user_id()
-    folder_path = os.path.join(current_app.root_path, 'static', 'uploads', f"user_{user_id}", "profile_pictures")
-    profile_picture_filename = None
+    profile_picture_filename = get_user_profile_picture(user_id)
+    folder_path = os.path.join(
+        get_upload_root(), f"user_{user_id}", "profile_pictures"
+    )
 
-    if os.path.exists(folder_path):
-        files = sorted(os.listdir(folder_path), key=lambda x: os.path.getmtime(os.path.join(folder_path, x)), reverse=True)
+    # Backfill from filesystem if the DB field is empty.
+    if not profile_picture_filename and os.path.exists(folder_path):
+        files = sorted(
+            os.listdir(folder_path),
+            key=lambda x: os.path.getmtime(os.path.join(folder_path, x)),
+            reverse=True
+        )
         if files:
             profile_picture_filename = f"user_{user_id}/profile_pictures/{files[0]}"
 
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
-
     timestamp = int(datetime.now(timezone.utc).timestamp())
-    return render_template('profile_sections/profile_picture.html',
-                           profile_picture_filename=profile_picture_filename,
-                           timestamp=timestamp,
-                           user_id=user_id,
-                           username=row['username'] if row else 'User')
+    return render_template(
+        'profile_sections/profile_picture.html',
+        profile_picture_filename=profile_picture_filename,
+        timestamp=timestamp,
+        user_id=user_id,
+        username=get_username_for_user(user_id)
+    )
 
 @profile_bp.route('/upload_profile_picture', methods=['POST'])
 @login_required
@@ -590,26 +654,43 @@ def upload_profile_picture():
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex}_{filename}"
-        folder_path = os.path.join(current_app.root_path, 'static', 'uploads', f"user_{user_id}", "profile_pictures")
+        folder_path = os.path.join(
+            get_upload_root(), f"user_{user_id}", "profile_pictures"
+        )
         os.makedirs(folder_path, exist_ok=True)
 
+        # Remove any existing files to keep only the latest profile picture
         for f in os.listdir(folder_path):
             try:
                 os.remove(os.path.join(folder_path, f))
-            except:
+            except OSError:
                 continue
 
+        # Save the new profile picture
         file_path = os.path.join(folder_path, unique_filename)
         file.save(file_path)
+        relative_file_path = f"user_{user_id}/profile_pictures/{unique_filename}"
+        update_user_profile_picture(user_id, relative_file_path)
 
+        # Return updated HTML with a cache‑busting timestamp
         timestamp = int(datetime.now(timezone.utc).timestamp())
-        return render_template('profile_sections/profile_picture.html',
-                               profile_picture_filename=unique_filename,
-                               timestamp=timestamp,
-                               user_id=user_id)
+        return render_template(
+            'profile_sections/profile_picture.html',
+            profile_picture_filename=relative_file_path,
+            timestamp=timestamp,
+            user_id=user_id,
+            username=get_username_for_user(user_id)
+        )
 
     error = "Invalid file or file type."
-    return render_template('profile_sections/profile_picture.html', error=error, user_id=user_id)
+    return render_template(
+        'profile_sections/profile_picture.html',
+        error=error,
+        user_id=user_id,
+        username=get_username_for_user(user_id),
+        profile_picture_filename=get_user_profile_picture(user_id),
+        timestamp=int(datetime.now(timezone.utc).timestamp())
+    )
 
 @profile_bp.route('/request_change', methods=['POST'])
 @login_required

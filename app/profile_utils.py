@@ -1,17 +1,34 @@
-from fileinput import filename
 from datetime import datetime
 from .db import get_db_connection
+import psycopg2
+import psycopg2.extras
 
 # ───── SETUP ─────
 def create_empty_profile_if_missing(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    cursor.execute("INSERT IGNORE INTO user_profile (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_pii (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_employment (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_banking (user_id) VALUES (%s)", (user_id,))
-    cursor.execute("INSERT IGNORE INTO user_family (user_id) VALUES (%s)", (user_id,))
+    # PostgresSQL replacement for INSERT IGNORE → ON CONFLICT DO NOTHING
+    cursor.execute("""
+                   INSERT INTO user_profile (user_id) VALUES (%s) 
+                   ON CONFLICT (user_id) DO NOTHING
+                   """, (user_id,))
+    cursor.execute("""
+                   INSERT INTO user_pii (user_id) VALUES (%s)
+                   ON CONFLICT (user_id) DO NOTHING
+                   """, (user_id,))
+    cursor.execute("""
+                   INSERT INTO user_employment (user_id) VALUES (%s)
+                   ON CONFLICT (user_id) DO NOTHING
+                   """, (user_id,))
+    cursor.execute("""
+                   INSERT INTO user_banking (user_id) VALUES (%s)
+                   ON CONFLICT (user_id) DO NOTHING
+                   """, (user_id,))
+    cursor.execute("""
+                   INSERT INTO user_family (user_id) VALUES (%s)
+                   ON CONFLICT (user_id) DO NOTHING
+                   """, (user_id,))
 
     conn.commit()
     cursor.close()
@@ -20,8 +37,11 @@ def create_empty_profile_if_missing(user_id):
 # ───── BASIC INFO ─────
 def get_user_profile(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_profile WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_profile WHERE user_id = %s",
+        (user_id,)
+    )
     data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -32,8 +52,16 @@ def update_user_profile(user_id, data):
     cursor = conn.cursor()
 
     # Retrieve current values to preserve locked fields
-    cursor.execute("SELECT full_name, date_of_birth, gender FROM user_profile WHERE user_id = %s", (user_id,))
+    cursor.execute(
+        "SELECT full_name, date_of_birth, gender FROM user_profile WHERE user_id = %s",
+        (user_id,)
+    )
     current = cursor.fetchone()
+
+    if current is None:
+        cursor.close()
+        conn.close()
+        return  # No profile found, nothing to update
 
     # Preserve locked fields
     full_name = current[0]
@@ -53,7 +81,8 @@ def update_user_profile(user_id, data):
             last_updated   = CURRENT_TIMESTAMP
         WHERE user_id = %s
     ''', (
-        full_name, date_of_birth, gender, contact_number, address, user_id
+        full_name, date_of_birth, gender,
+        contact_number, address, user_id
     ))
 
     conn.commit()
@@ -63,8 +92,11 @@ def update_user_profile(user_id, data):
 # ───── PII ─────
 def get_user_pii(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_pii WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_pii WHERE user_id = %s",
+        (user_id,)
+    )
     data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -75,14 +107,21 @@ def update_user_pii(user_id, data_dict):
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_pii
-        SET id_type = %s, id_number = %s, citizenship = %s,
-            emergency_contact_name = %s, emergency_contact_number = %s,
+        SET id_type = %s,
+            id_number = %s,
+            citizenship = %s,
+            emergency_contact_name = %s,
+            emergency_contact_number = %s,
             emergency_contact_address = %s
         WHERE user_id = %s
     """, (
-        data_dict['id_type'], data_dict['id_number'], data_dict['citizenship'],
-        data_dict['emergency_contact_name'], data_dict['emergency_contact_number'],
-        data_dict['emergency_contact_address'], user_id
+        data_dict['id_type'],
+        data_dict['id_number'],
+        data_dict['citizenship'],
+        data_dict['emergency_contact_name'],
+        data_dict['emergency_contact_number'],
+        data_dict['emergency_contact_address'],
+        user_id
     ))
     conn.commit()
     cursor.close()
@@ -91,8 +130,11 @@ def update_user_pii(user_id, data_dict):
 # ───── EMPLOYMENT ─────
 def get_user_employment(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_employment WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_employment WHERE user_id = %s",
+        (user_id,)
+    )
     data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -103,12 +145,21 @@ def update_user_employment(user_id, data_dict):
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_employment
-        SET job_title = %s, department = %s, work_email = %s,
-            date_joined = %s, employment_status = %s, supervisor = %s
+        SET job_title = %s,
+            department = %s,
+            work_email = %s,
+            date_joined = %s,
+            employment_status = %s,
+            supervisor = %s
         WHERE user_id = %s
     """, (
-        data_dict['job_title'], data_dict['department'], data_dict['work_email'],
-        data_dict['date_joined'], data_dict['employment_status'], data_dict['supervisor'], user_id
+        data_dict['job_title'],
+        data_dict['department'],
+        data_dict['work_email'],
+        data_dict['date_joined'],
+        data_dict['employment_status'],
+        data_dict['supervisor'],
+        user_id
     ))
     conn.commit()
     cursor.close()
@@ -117,8 +168,11 @@ def update_user_employment(user_id, data_dict):
 # ───── BANKING ─────
 def get_user_banking(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_banking WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_banking WHERE user_id = %s",
+        (user_id,)
+    )
     data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -129,10 +183,15 @@ def update_user_banking(user_id, data_dict):
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_banking
-        SET bank_name = %s, bank_account_number = %s, account_holder_name = %s
+        SET bank_name = %s,
+            bank_account_number = %s,
+            account_holder_name = %s
         WHERE user_id = %s
     """, (
-        data_dict['bank_name'], data_dict['bank_account_number'], data_dict['account_holder_name'], user_id
+        data_dict['bank_name'],
+        data_dict['bank_account_number'],
+        data_dict['account_holder_name'],
+        user_id
     ))
     conn.commit()
     cursor.close()
@@ -141,8 +200,11 @@ def update_user_banking(user_id, data_dict):
 # ───── FAMILY ─────
 def get_user_family(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_family WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_family WHERE user_id = %s",
+        (user_id,)
+    )
     data = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -155,7 +217,10 @@ def update_user_family(user_id, data_dict):
         UPDATE user_family
         SET marital_status = %s
         WHERE user_id = %s
-    """, (data_dict['marital_status'], user_id))
+    """, (
+        data_dict['marital_status'],
+        user_id
+    ))
     conn.commit()
     cursor.close()
     conn.close()
@@ -163,8 +228,11 @@ def update_user_family(user_id, data_dict):
 # ───── SPOUSES ─────
 def get_user_spouses(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_spouses WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_spouses WHERE user_id = %s",
+        (user_id,)
+    )
     spouses = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -176,24 +244,36 @@ def add_user_spouse(user_id, data):
     cursor.execute("""
         INSERT INTO user_spouses (user_id, spouse_name, spouse_id_type, spouse_id_number, spouse_address)
         VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
     """, (
-        user_id, data['spouse_name'], data['spouse_id_type'],
-        data['spouse_id_number'], data['spouse_address']
+        user_id,
+        data['spouse_name'],
+        data['spouse_id_type'],
+        data['spouse_id_number'],
+        data['spouse_address']
     ))
+    new_id = cursor.fetchone()[0]  # Capture the inserted spouse's ID
     conn.commit()
     cursor.close()
     conn.close()
+    return new_id
 
 def update_user_spouse(spouse_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_spouses
-        SET spouse_name = %s, spouse_id_type = %s, spouse_id_number = %s, spouse_address = %s
+        SET spouse_name = %s,
+            spouse_id_type = %s,
+            spouse_id_number = %s,
+            spouse_address = %s
         WHERE id = %s
     """, (
-        data['spouse_name'], data['spouse_id_type'],
-        data['spouse_id_number'], data['spouse_address'], spouse_id
+        data['spouse_name'],
+        data['spouse_id_type'],
+        data['spouse_id_number'],
+        data['spouse_address'],
+        spouse_id
     ))
     conn.commit()
     cursor.close()
@@ -202,7 +282,10 @@ def update_user_spouse(spouse_id, data):
 def delete_user_spouse(spouse_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_spouses WHERE id = %s", (spouse_id,))
+    cursor.execute(
+        "DELETE FROM user_spouses WHERE id = %s",
+        (spouse_id,)
+    )
     conn.commit()
     cursor.close()
     conn.close()
@@ -210,8 +293,11 @@ def delete_user_spouse(spouse_id):
 # ───── DEPENDENT ─────
 def get_user_dependents(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_dependents WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_dependents WHERE user_id = %s",
+        (user_id,)
+    )
     dependents = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -221,24 +307,39 @@ def add_user_dependent(user_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO user_dependents (user_id, dependent_name, dependent_relationship, dependent_birthdate, dependent_notes)
+        INSERT INTO user_dependents
+        (user_id, dependent_name, dependent_relationship, dependent_birthdate, dependent_notes)
         VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
     """, (
-        user_id, data['dependent_name'], data['dependent_relationship'], data['dependent_birthdate'], data['dependent_notes']
+        user_id,
+        data['dependent_name'],
+        data['dependent_relationship'],
+        data['dependent_birthdate'],
+        data['dependent_notes']
     ))
+    new_id = cursor.fetchone()[0]  # Capture new dependent ID
     conn.commit()
     cursor.close()
     conn.close()
+    return new_id
 
 def update_user_dependent(dependent_id, data):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE user_dependents
-        SET dependent_name = %s, dependent_relationship = %s, dependent_birthdate = %s, dependent_notes = %s
+        SET dependent_name = %s,
+            dependent_relationship = %s,
+            dependent_birthdate = %s,
+            dependent_notes = %s
         WHERE id = %s
     """, (
-        data['dependent_name'], data['dependent_relationship'], data['dependent_birthdate'], data['dependent_notes']
+        data['dependent_name'],
+        data['dependent_relationship'],
+        data['dependent_birthdate'],
+        data['dependent_notes'],
+        dependent_id
     ))
     conn.commit()
     cursor.close()
@@ -247,7 +348,10 @@ def update_user_dependent(dependent_id, data):
 def delete_user_dependent(dependent_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_dependents WHERE id = %s", (dependent_id,))
+    cursor.execute(
+        "DELETE FROM user_dependents WHERE id = %s",
+        (dependent_id,)
+    )
     conn.commit()
     cursor.close()
     conn.close()
@@ -255,8 +359,11 @@ def delete_user_dependent(dependent_id):
 # ───── VEHICLES ─────
 def get_user_vehicles(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_vehicles WHERE user_id = %s", (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_vehicles WHERE user_id = %s",
+        (user_id,)
+    )
     data = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -264,8 +371,11 @@ def get_user_vehicles(user_id):
 
 def get_vehicle_by_id(vehicle_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM user_vehicles WHERE id = %s", (vehicle_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT * FROM user_vehicles WHERE id = %s",
+        (vehicle_id,)
+    )
     vehicle = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -275,21 +385,30 @@ def add_user_vehicle(user_id, data_dict):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO user_vehicles (user_id, vehicle_type, make, model, year_model, plate_number,
-             color, parking_permit_id, last_updated)
+        INSERT INTO user_vehicles
+        (user_id, vehicle_type, make, model, year_model, plate_number,
+         color, parking_permit_id, last_updated)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+        RETURNING id
     ''', (
-        user_id, data_dict['vehicle_type'], data_dict['make'], data_dict['model'], data_dict['year_model'], data_dict['plate_number'],
-        data_dict['color'], data_dict['parking_permit_id']
+        user_id,
+        data_dict['vehicle_type'],
+        data_dict['make'],
+        data_dict['model'],
+        data_dict['year_model'],
+        data_dict['plate_number'],
+        data_dict['color'],
+        data_dict['parking_permit_id']
     ))
+    new_id = cursor.fetchone()[0]  # Capture auto-generated ID
     conn.commit()
     cursor.close()
     conn.close()
+    return new_id
 
 def update_user_vehicle(vehicle_id, data_dict):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute('''
         UPDATE user_vehicles
         SET vehicle_type = %s,
@@ -311,7 +430,6 @@ def update_user_vehicle(vehicle_id, data_dict):
         data_dict['parking_permit_id'],
         vehicle_id
     ))
-
     conn.commit()
     cursor.close()
     conn.close()
@@ -319,7 +437,10 @@ def update_user_vehicle(vehicle_id, data_dict):
 def delete_user_vehicle(vehicle_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM user_vehicles WHERE id = %s", (vehicle_id,))
+    cursor.execute(
+        "DELETE FROM user_vehicles WHERE id = %s",
+        (vehicle_id,)
+    )
     conn.commit()
     cursor.close()
     conn.close()
@@ -327,14 +448,14 @@ def delete_user_vehicle(vehicle_id):
 # ───── DOCUMENTS ─────
 def get_user_documents(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cursor.execute('''
-                   SELECT d.*, u.username
-                   FROM user_documents d
-                            JOIN users u ON d.user_id = u.id
-                   WHERE d.user_id = %s
-                   ORDER BY d.id DESC
-                   ''', (user_id,))
+        SELECT d.*, u.username
+        FROM user_documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.user_id = %s
+        ORDER BY d.id DESC
+    ''', (user_id,))
     data = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -346,23 +467,39 @@ def add_user_document(user_id, document_type, file_path, status="Pending", displ
     cursor.execute("""
         INSERT INTO user_documents (user_id, document_type, file_path, status, display_name)
         VALUES (%s, %s, %s, %s, %s)
-    """, (user_id, document_type, file_path, status, display_name))
+        RETURNING id
+    """, (
+        user_id,
+        document_type,
+        file_path,
+        status,
+        display_name
+    ))
+    new_id = cursor.fetchone()[0]  # Capture new document ID
     conn.commit()
     cursor.close()
     conn.close()
+    return new_id
 
 def get_user_profile_picture(user_id):
     conn = get_db_connection()
-    with conn.cursor(dictionary=True) as cursor:
-        cursor.execute("SELECT profile_picture FROM users WHERE id = %s", (user_id,))
-        result = cursor.fetchone()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute(
+        "SELECT profile_picture FROM users WHERE id = %s",
+        (user_id,)
+    )
+    result = cursor.fetchone()
+    cursor.close()
     conn.close()
     return result["profile_picture"] if result else None
 
 def update_user_profile_picture(user_id, file_path):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE users SET profile_picture = %s WHERE id = %s", (file_path, user_id))
+    cursor.execute(
+        "UPDATE users SET profile_picture = %s WHERE id = %s",
+        (file_path, user_id)
+    )
     conn.commit()
     cursor.close()
     conn.close()
