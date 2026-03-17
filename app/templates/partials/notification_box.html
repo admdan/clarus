@@ -1,0 +1,36 @@
+<div id="notificationBox"
+     class="glass-effect p-6 mb-10 border-l-4 border-brandLightYellow rounded-xl shadow animate-fadeIn {% if not visible %}hidden{% endif %}">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="text-2xl font-bold text-brandYellow flex items-center gap-2">
+      <i class="bi bi-bell-fill text-xl text-brandYellow"></i> Notifications
+    </h3>
+  </div>
+
+  {% if status_message %}
+    <div class="mb-4 rounded-lg px-4 py-3 {% if status_category == 'success' %}bg-green-900/60 text-green-100 border border-green-500/40{% else %}bg-red-900/60 text-red-100 border border-red-500/40{% endif %}">
+      {{ status_message }}
+    </div>
+  {% endif %}
+
+  {% if notifications %}
+    <ul class="space-y-4">
+      {% for note in notifications %}
+        <li class="p-4 bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-gray-400">From: <strong>{{ note.sender_name or 'System' }}</strong></span>
+            <span class="text-xs text-gray-500">
+              {% if note.created_at %}
+                {{ note.created_at.strftime('%b %d, %Y %I:%M %p') }}
+              {% else %}
+                Unknown time
+              {% endif %}
+            </span>
+          </div>
+          <p class="text-gray-200 text-sm leading-relaxed">{{ note.message }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-400 text-sm">No notifications at the moment.</p>
+  {% endif %}
+</div>

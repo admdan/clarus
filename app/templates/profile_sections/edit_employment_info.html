@@ -1,40 +1,59 @@
 <div id="employment-info-container">
+  {% set can_edit_directly = current_user.role in ['admin', 'hr', 'support'] %}
   <form hx-post="{{ url_for('profile.update_employment_info') }}?user_id={{ user_id }}"
         hx-target="#employment-info-container"
-        hx-swap="innerHTML"
+        hx-swap="outerHTML"
         class="card shadow-sm mb-4">
     <div class="card-header">
       <h5 class="mb-0">Edit Employment Info</h5>
     </div>
     <div class="card-body">
       {% set fields = [
-        ('Job Title', 'text', employment.job_title),
-        ('Department', 'text', employment.department),
-        ('Work Email', 'email', employment.work_email),
-        ('Date Joined', 'date', employment.date_joined),
-        ('Employment Status', 'text', employment.employment_status),
-        ('Supervisor', 'text', employment.supervisor)
+        ('job_title', 'Job Title', 'text', employment.job_title),
+        ('department', 'Department', 'text', employment.department),
+        ('work_email', 'Work Email', 'email', employment.work_email),
+        ('date_joined', 'Date Joined', 'date', employment.date_joined),
+        ('employment_status', 'Employment Status', 'text', employment.employment_status),
+        ('supervisor', 'Supervisor', 'text', employment.supervisor)
       ] %}
-      {% for label, type, value in fields %}
+      {% for name, label, type, value in fields %}
         <div class="mb-3">
           <label class="form-label">{{ label }}</label>
-          <input type="{{ type if type != 'date' else 'text' }}" class="form-control bg-primary-subtle" value="{{ value or '' }}" readonly>
-          <button type="button"
-                  class="btn btn-sm btn-outline-danger mt-1"
-                  data-bs-toggle="modal"
-                  data-bs-target="#changeModal"
-                  onclick="setChangeField('{{ label }}', '{{ type }}')">
-            Request Change
-          </button>
+          {% if can_edit_directly and label == 'Employment Status' %}
+            <select name="{{ name }}" class="form-select bg-dark-subtle">
+              {% for option in ['Full-time', 'Part-time', 'Intern', 'Terminated', 'Retired'] %}
+                <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          {% else %}
+            <input
+              type="{{ 'date' if type == 'date' else type }}"
+              name="{{ name }}"
+              class="form-control {{ 'bg-dark-subtle' if can_edit_directly else 'bg-primary-subtle' }}"
+              value="{{ value or '' }}"
+              {% if not can_edit_directly %}readonly{% endif %}>
+          {% endif %}
+          {% if not can_edit_directly %}
+            <button type="button"
+                    class="btn btn-sm btn-outline-danger mt-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#changeModal"
+                    onclick="setChangeField('{{ label }}', '{{ type }}')">
+              Request Change
+            </button>
+          {% endif %}
         </div>
       {% endfor %}
     </div>
     <div class="card-footer d-flex justify-content-between">
+      {% if can_edit_directly %}
+        <button type="submit" class="btn btn-success">Save</button>
+      {% endif %}
       <button type="button"
               class="btn btn-secondary"
               hx-get="{{ url_for('profile.employment_info') }}?user_id={{ user_id }}"
               hx-target="#employment-info-container"
-              hx-swap="innerHTML">
+              hx-swap="outerHTML">
         Cancel
       </button>
     </div>

@@ -256,7 +256,7 @@
     const newValue = document.getElementById('newValue').value;
     const note = document.getElementById('changeNote').value;
 
-    fetch("/profile/request_change", {
+    fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field, new_value: newValue, note })
@@ -293,7 +293,7 @@
   }
 
   function requestChange(field) {
-    fetch("/profile/request_change", {
+    fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ field })
@@ -310,3 +310,4 @@
 </script>
 </body>
 </html>
+

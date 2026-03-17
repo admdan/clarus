@@ -54,7 +54,7 @@
                         {% set filters = log.filters %}
                         {% set visible_filters = filters | dictsort if filters else [] %}
                         {% if visible_filters and visible_filters | selectattr('1') | list %}
-                            <div class="filters-box">
+                            <div class="filters-box" title="{{ filters }}">
                                 {% for key, value in visible_filters if value %}
                                     {{ key }}: {{ value }}<br>
                                 {% endfor %}
@@ -64,7 +64,7 @@
                         {% endif %}
                     </td>
 
-                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.timestamp.strftime('%b %d, %Y %I:%M %p') if log.timestamp else '-' }}</td>
                     <td>
                         {% if log.is_single_asset %}
                             {% for aid in log.asset_ids %}

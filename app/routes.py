@@ -6,9 +6,31 @@ from .db import get_db_connection
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 import smtplib
+import psycopg2
+import psycopg2.extras
 from email.mime.text import MIMEText
 
 bp = Blueprint('routes', __name__)
+
+def get_recent_notifications(user_id, role, limit=10):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cursor.execute("""
+            SELECT n.*, u.username AS sender_name
+            FROM notifications n
+            LEFT JOIN users u ON u.id = n.sender_id
+            WHERE 
+                (n.recipient_id IS NULL AND n.target_role IS NULL) OR
+                (n.recipient_id = %s) OR
+                (n.target_role = %s)
+            ORDER BY n.created_at DESC NULLS LAST, n.id DESC
+            LIMIT %s
+        """, (user_id, role, limit))
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
 
 def roles_required(*roles):
     def wrapper(f):
@@ -47,19 +69,23 @@ def register():
 
     # Check if user exists
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE username = %s OR email = %s", (username, email))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute("""
+                   SELECT *
+                   FROM users
+                   WHERE LOWER(username) = LOWER(%s)
+                      OR LOWER(email) = LOWER(%s)
+                   """, (username, email))
     existing_user = cursor.fetchone()
+    cursor.close()
+    conn.close()
 
     if existing_user:
         flash("User already exists. Try a different username or email.", "register_error")
-        cursor.close()
-        conn.close()
         return redirect(url_for('routes.login_register'))
 
     # Insert new user
-    from .models import insert_user
-    insert_user(username, email, password, )
+    insert_user(username, email, password)
 
     flash("Registration successful. Please login!", "register_success")
     return redirect(url_for('routes.login_register'))
@@ -68,7 +94,7 @@ def register():
 def login():
     username = request.form['username']
     password = request.form['password']
-    remember = request.form.get('remember', False) == 'on' #true if checked, false otherwise
+    remember = request.form.get('remember', False) == 'on' # True if checked, false otherwise
 
     if verify_user(username,password):
         user = get_user_by_username(username)
@@ -157,7 +183,7 @@ def reset_password(token):
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute('''UPDATE users 
                           SET password_hash = %s 
                           WHERE email = %s''',
@@ -189,30 +215,26 @@ def portal():
 
     welcome_message = f"Welcome back, {current_user.username}!"
 
-    # Fetch notifications for this user
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    notifications = get_recent_notifications(current_user.id, role)
 
-    cursor.execute("""
-        SELECT n.*, u.username AS sender_name
-        FROM notifications n
-        JOIN users u ON u.id = n.sender_id
-        WHERE 
-            (n.recipient_id IS NULL AND n.target_role IS NULL) OR
-            (n.recipient_id = %s) OR
-            (n.target_role = %s)
-        ORDER BY n.created_at DESC
-        LIMIT 10
-    """, (current_user.id, role))
+    return render_template(
+        'portal.html',
+        modules=modules,
+        welcome_message=welcome_message,
+        notifications=notifications
+    )
 
-    notifications = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    return render_template('portal.html',
-                           modules=modules,
-                           welcome_message=welcome_message,
-                           notifications=notifications)
+@bp.route('/notifications-panel')
+@login_required
+def notifications_panel():
+    role = getattr(current_user, 'role', 'basic')
+    notifications = get_recent_notifications(current_user.id, role)
+    visible = request.args.get('visible', 'false').lower() == 'true'
+    return render_template(
+        'partials/notification_box.html',
+        notifications=notifications,
+        visible=visible
+    )
 
 
 @bp.route('/manage-role')
@@ -220,7 +242,7 @@ def portal():
 @roles_required('admin')
 def manage_role():
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cursor.execute("SELECT id, username, email, role FROM users")
     users = cursor.fetchall()
     cursor.close()
@@ -241,8 +263,20 @@ def post_notification():
     target_role = request.form.get('target_role', '').strip() or None
     recipient_username = request.form.get('recipient_username', '').strip() or None
 
+    if target_role == 'user':
+        target_role = 'basic'
+
     if not message:
         flash("Message cannot be empty.", "danger")
+        if request.headers.get('HX-Request'):
+            notifications = get_recent_notifications(current_user.id, getattr(current_user, 'role', 'basic'))
+            return render_template(
+                'partials/notification_box.html',
+                notifications=notifications,
+                visible=True,
+                status_message="Message cannot be empty.",
+                status_category="danger"
+            ), 400
         return redirect(url_for('routes.portal'))
 
     recipient_id = None
@@ -250,28 +284,62 @@ def post_notification():
     # If a specific user is targeted, look them up
     if recipient_username:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         cursor.execute("SELECT id FROM users WHERE username = %s", (recipient_username,))
         user = cursor.fetchone()
-        if not user:
-            flash(f"User '{recipient_username}' not found.", "danger")
-            cursor.close()
-            conn.close()
-            return redirect(url_for('routes.portal'))
-        recipient_id = user['id']
         cursor.close()
         conn.close()
+
+        if not user:
+            flash(f"User '{recipient_username}' not found.", "danger")
+            if request.headers.get('HX-Request'):
+                notifications = get_recent_notifications(current_user.id, getattr(current_user, 'role', 'basic'))
+                return render_template(
+                    'partials/notification_box.html',
+                    notifications=notifications,
+                    visible=True,
+                    status_message=f"User '{recipient_username}' not found.",
+                    status_category="danger"
+                ), 404
+            return redirect(url_for('routes.portal'))
+
+        recipient_id = user['id']
 
     # Insert notification into DB
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO notifications (sender_id, recipient_id, target_role, message)
-        VALUES (%s, %s, %s, %s)
-    """, (current_user.id, recipient_id, target_role, message))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        cursor.execute("""
+                       INSERT INTO notifications (sender_id, recipient_id, target_role, message, created_at)
+                       VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                       """, (current_user.id, recipient_id, target_role, message))
+        conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        print(f"[ERROR] Failed to insert notification: {e}")
+        flash("Notification could not be posted. Please try again.", "danger")
+        if request.headers.get('HX-Request'):
+            notifications = get_recent_notifications(current_user.id, getattr(current_user, 'role', 'basic'))
+            return render_template(
+                'partials/notification_box.html',
+                notifications=notifications,
+                visible=True,
+                status_message="Notification could not be posted. Please try again.",
+                status_category="danger"
+            ), 500
+        return redirect(url_for('routes.portal'))
+    finally:
+        cursor.close()
+        conn.close()
 
     flash("Notification posted successfully.", "success")
+    if request.headers.get('HX-Request'):
+        notifications = get_recent_notifications(current_user.id, getattr(current_user, 'role', 'basic'))
+        return render_template(
+            'partials/notification_box.html',
+            notifications=notifications,
+            visible=True,
+            status_message="Notification posted successfully.",
+            status_category="success"
+        )
     return redirect(url_for('routes.portal'))

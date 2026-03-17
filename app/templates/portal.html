@@ -10,6 +10,7 @@
   />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -319,32 +320,7 @@
           {% endwith %}
 
           <!-- Toggleable Notification Box -->
-          <div id="notificationBox" class="glass-effect p-6 mb-10 border-l-4 border-brandLightYellow rounded-xl shadow animate-fadeIn hidden"
-               hx-get="{{ url_for('routes.portal') }}"
-               hx-target="#notificationBox"
-               hx-swap="outerHTML">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-2xl font-bold text-brandYellow flex items-center gap-2">
-                <i class="bi bi-bell-fill text-xl text-brandYellow"></i> Notifications
-              </h3>
-            </div>
-
-            {% if notifications %}
-              <ul class="space-y-4">
-                {% for note in notifications %}
-                  <li class="p-4 bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition duration-300">
-                    <div class="flex items-center justify-between mb-2">
-                      <span class="text-sm text-gray-400">From: <strong>{{ note.sender_name }}</strong></span>
-                      <span class="text-xs text-gray-500">{{ note.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
-                    </div>
-                    <p class="text-gray-200 text-sm leading-relaxed">{{ note.message }}</p>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-gray-400 text-sm">No notifications at the moment.</p>
-            {% endif %}
-          </div>
+          {% include 'partials/notification_box.html' %}
 
           <!-- Inline New Reminder Box (hidden by default) -->
           <div id="newReminderBox"
@@ -359,7 +335,9 @@
               </button>
             </div>
 
-            <form hx-post="{{ url_for('routes.post_notification') }}"
+            <form method="POST"
+                  action="{{ url_for('routes.post_notification') }}"
+                  hx-post="{{ url_for('routes.post_notification') }}"
                   hx-target="#notificationBox"
                   hx-swap="outerHTML"
                   class="space-y-4">
@@ -375,7 +353,7 @@
                 <label class="form-label">Target Role (optional)</label>
                 <select name="target_role" class="form-select bg-dark-subtle text-white">
                   <option value="">All users</option>
-                  <option value="user">User</option>
+                  <option value="basic">Basic</option>
                   <option value="support">Support</option>
                   <option value="hr">HR</option>
                   <option value="admin">Admin</option>
@@ -626,15 +604,17 @@
             main.classList.remove('hidden');
             main.style.animation = 'fadeIn 1s ease-in-out';
           }, 400);
-        }, 7000); // loader duration was 7000
+        }, 2000); // loader duration was 7000
       });
   </script>
   <script>
     const toggleBtn = document.getElementById('toggleNotificationBtn');
-    const notificationBox = document.getElementById('notificationBox');
 
     toggleBtn.addEventListener('click', () => {
-      notificationBox.classList.toggle('hidden');
+      const notificationBox = document.getElementById('notificationBox');
+      if (notificationBox) {
+        notificationBox.classList.toggle('hidden');
+      }
     });
   </script>
   <script>
@@ -647,9 +627,15 @@
       newReminderBox.classList.toggle('hidden');
     }
 
-    toggleReminderBtn.addEventListener('click', toggleReminder);
-    closeReminderBtn.addEventListener('click', toggleReminder);
-    cancelReminderBtn.addEventListener('click', toggleReminder);
+    if (toggleReminderBtn) {
+      toggleReminderBtn.addEventListener('click', toggleReminder);
+    }
+    if (closeReminderBtn) {
+      closeReminderBtn.addEventListener('click', toggleReminder);
+    }
+    if (cancelReminderBtn) {
+      cancelReminderBtn.addEventListener('click', toggleReminder);
+    }
   </script>
 </body>
 </html>

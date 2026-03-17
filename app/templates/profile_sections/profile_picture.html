@@ -17,7 +17,7 @@
       </div>
       {% endif %}
       <!-- Floating pencil icon triggers file input -->
-      {% if current_user.id == user_id %}
+      {% if current_user.id == user_id or current_user.role in ['admin', 'hr', 'support'] %}
         <div class="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-1"
              role="button"
              onclick="triggerFileInput()"
@@ -28,10 +28,13 @@
     </div>
 
     <!-- Form for uploading -->
-    <form id="uploadForm" method="POST" enctype="multipart/form-data"
-          action="{{ url_for('profile.upload_profile_picture') }}">
+    <form id="uploadForm"
+          hx-post="{{ url_for('profile.upload_profile_picture') }}?user_id={{ user_id }}"
+          hx-target="#profile-picture-section"
+          hx-swap="outerHTML"
+          hx-encoding="multipart/form-data">
       <input type="file" id="profileUpload" name="profile_picture" style="display:none;"
-             onchange="document.getElementById('uploadForm').submit();">
+             onchange="document.getElementById('uploadForm').requestSubmit();">
     </form>
 
     {% if error %}

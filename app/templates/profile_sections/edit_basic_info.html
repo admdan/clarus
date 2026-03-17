@@ -1,7 +1,7 @@
-<div id="basic_info-container">
+<div id="basic-info-container">
     <form hx-post="{{ url_for('profile.update_basic_info') }}?user_id={{ user_id }}"
           hx-target="#basic-info-container"
-          hx-swap="innerHTML"
+          hx-swap="outerHTML"
           class="card shadow-sm mb-4">
         <div class="card-header">
             <h5 class="mb-0">Edit Basic Info</h5>
@@ -65,7 +65,7 @@
                     class="btn btn-secondary"
                     hx-get="{{ url_for('profile.basic_info') }}?user_id={{ user_id }}"
                     hx-target="#basic-info-container"
-                    hx-swap="innerHTML"
+                    hx-swap="outerHTML"
                     >
                 Cancel
             </button>
@@ -138,7 +138,7 @@ function submitChangeRequest(e) {
   const new_value = document.getElementById('newValue').value;
   const note = document.getElementById('changeNote').value;
 
-  fetch("/profile/request_change", {
+  fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ field, new_value, note })

@@ -1,3 +1,4 @@
+import psycopg2.extras
 from .db import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
@@ -15,22 +16,23 @@ class User(UserMixin):
 # Used during registration to insert new user into the database
 def insert_user(username, email, password, role='basic'):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     hashed_pw = generate_password_hash(password, method='pbkdf2:sha256')
 
     try:
         cursor.execute('''
                        INSERT INTO users (username, email, password_hash, role)
-                           VALUES (%s, %s, %s, %s)''',
-                       (username, email, hashed_pw, role)
-        )
-        conn.commit()
+                       VALUES (%s, %s, %s, %s)
+                       RETURNING id
+                       ''', (username, email, hashed_pw, role))
 
-        # Get the new user ID
-        new_user_id = cursor.lastrowid
+        # PostgreSQL: fetch the auto-generated user ID
+        new_user_id = cursor.fetchone()[0]
+        conn.commit()
 
         # Create their empty profile records
         create_empty_profile_if_missing(new_user_id)
+
     except Exception as e:
         print(f"[ERROR] Failed to insert user: {e}") #Debug line
     finally:
@@ -40,12 +42,13 @@ def insert_user(username, email, password, role='basic'):
 # Used during login to validate the password
 def verify_user(username, password):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    cursor.execute('''SELECT * 
-                      FROM users 
-                      WHERE username = %s''',
-                   (username,))
+    cursor.execute('''
+                   SELECT *
+                   FROM users
+                   WHERE username = %s
+                   ''', (username,))
     user = cursor.fetchone()
 
     cursor.close()
@@ -59,11 +62,12 @@ def verify_user(username, password):
 # Used by Flask-Login to load a user from session using their ID
 def get_user(user_id):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('''SELECT * 
-                      FROM users
-                      WHERE id = %s''',
-                   (user_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute('''
+                   SELECT *
+                   FROM users
+                   WHERE id = %s
+                   ''', (user_id,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -80,11 +84,12 @@ def get_user(user_id):
 # Used for login authentication (typically using username + password)
 def get_user_by_username(username):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('''SELECT * 
-                      FROM users 
-                      WHERE username = %s''',
-                   (username,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute('''
+                   SELECT *
+                   FROM users
+                   WHERE username = %s
+                   ''', (username,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -95,16 +100,17 @@ def get_user_by_username(username):
                     email=user['email'],
                     role=user.get('role', 'basic'),
                     profile_picture=user.get('profile_picture')
-    )
+        )
     return None
 
 def get_user_by_email(email):
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('''SELECT *
-                      FROM users 
-                      WHERE email = %s''',
-                   (email,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute('''
+                   SELECT *
+                   FROM users
+                   WHERE email = %s
+                   ''', (email,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -121,6 +127,6 @@ def verify_reset_token(token, secret_key, salt, expiration=3600):
     serializer = URLSafeTimedSerializer(secret_key)
     try:
         email = serializer.loads(token, salt=salt, max_age=expiration)
-    except:
+    except Exception:
         return None
     return email

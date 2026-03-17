@@ -11,7 +11,7 @@
             <button class="btn btn-sm btn-primary"
                     hx-get="{{ url_for('profile.edit_family_info') }}?user_id={{ user_id }}"
                     hx-target="#family-info-container"
-                    hx-swap="innerHTML">
+                    hx-swap="outerHTML">
                 Edit Marital Status
             </button>
         </div>

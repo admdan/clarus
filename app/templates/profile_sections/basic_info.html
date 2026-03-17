@@ -11,7 +11,7 @@
             <button class="btn btn-sm btn-primary float-end"
                     hx-get="{{ url_for('profile.edit_basic_info') }}?user_id={{ user_id }}"
                     hx-target="#basic-info-container"
-                    hx-swap="innerHTML">
+                    hx-swap="outerHTML">
                 Edit
             </button>
         </h5>

@@ -1,7 +1,8 @@
 <div id="banking-info-container">
+    {% set can_edit_directly = current_user.role in ['admin', 'hr', 'support'] %}
     <form hx-post="{{ url_for('profile.update_banking_info') }}?user_id={{ user_id }}"
           hx-target="#banking-info-container"
-          hx-swap="innerHTML"
+          hx-swap="outerHTML"
           class="card shadow-sm mb-4">
         <div class="card-header">
             <h5 class="mb-0">
@@ -11,44 +12,65 @@
         <div class="card-body">
             <div class="mb-3">
                 <label class="form-label">Bank Name</label>
-                <input type="text" class="form-control bg-primary-subtle" name="bank_name" value="{{ banking.bank_name or '' }}" readonly>
-                <button type="button"
-                        class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Bank Name', 'text')">
-                    Request Change
-                </button>
+                <input type="text"
+                       class="form-control {{ 'bg-dark-subtle' if can_edit_directly else 'bg-primary-subtle' }}"
+                       name="bank_name"
+                       value="{{ banking.bank_name or '' }}"
+                       {% if not can_edit_directly %}readonly{% endif %}>
+                {% if not can_edit_directly %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger mt-1"
+                            data-bs-toggle="modal"
+                            data-bs-target="#changeModal"
+                            onclick="setChangeField('Bank Name', 'text')">
+                        Request Change
+                    </button>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">Bank Account Number</label>
-                <input type="text" class="form-control bg-primary-subtle" value="{{ banking.bank_account_number or '' }}" readonly>
-                <button type="button"
-                        class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Bank Account Number', 'text')">
-                    Request Change
-                </button>
+                <input type="text"
+                       class="form-control {{ 'bg-dark-subtle' if can_edit_directly else 'bg-primary-subtle' }}"
+                       name="bank_account_number"
+                       value="{{ banking.bank_account_number or '' }}"
+                       {% if not can_edit_directly %}readonly{% endif %}>
+                {% if not can_edit_directly %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger mt-1"
+                            data-bs-toggle="modal"
+                            data-bs-target="#changeModal"
+                            onclick="setChangeField('Bank Account Number', 'text')">
+                        Request Change
+                    </button>
+                {% endif %}
             </div>
             <div class="mb-3">
                 <label class="form-label">Account Holder Name</label>
-                <input type="text" class="form-control bg-primary-subtle" name="account_holder_name" value="{{ banking.account_holder_name or '' }}" readonly>
-                <button type="button"
-                        class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Account Holder Name', 'text')">
-                    Request Change
-                </button>
+                <input type="text"
+                       class="form-control {{ 'bg-dark-subtle' if can_edit_directly else 'bg-primary-subtle' }}"
+                       name="account_holder_name"
+                       value="{{ banking.account_holder_name or '' }}"
+                       {% if not can_edit_directly %}readonly{% endif %}>
+                {% if not can_edit_directly %}
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger mt-1"
+                            data-bs-toggle="modal"
+                            data-bs-target="#changeModal"
+                            onclick="setChangeField('Account Holder Name', 'text')">
+                        Request Change
+                    </button>
+                {% endif %}
             </div>
         </div>
         <div class="card-footer d-flex justify-content-between">
+            {% if can_edit_directly %}
+                <button type="submit" class="btn btn-success">Save</button>
+            {% endif %}
             <button type="button"
                     class="btn btn-secondary"
                     hx-get="{{ url_for('profile.banking_info') }}?user_id={{ user_id }}"
                     hx-target="#banking-info-container"
-                    hx-swap="innerHTML">
+                    hx-swap="outerHTML">
               Cancel
             </button>
         </div>
@@ -106,7 +128,7 @@ function submitChangeRequest(e) {
   const new_value = document.getElementById('newValue').value;
   const note = document.getElementById('changeNote').value;
 
-  fetch("/profile/request_change", {
+  fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ field, new_value, note })

@@ -301,6 +301,7 @@
                         {% else %}bg-secondary{% endif %}">
                         {{ ticket.status }}
                     </span>
+                </td>
                 <td class="text-nowrap text-end">{{ ticket.due_date.strftime('%Y-%m-%d') if ticket.due_date else '—' }}</td>
                 <td class="text-nowrap text-end">{{ ticket.date_reported.strftime('%Y-%m-%d') if ticket.date_reported else '—' }}</td>
                 <td>
@@ -422,3 +423,4 @@
 </script>
 </body>
 </html>
+

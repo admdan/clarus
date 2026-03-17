@@ -1,6 +1,6 @@
 # Clarus — Clearer IT, Faster Fixes 🛠️
 
-**Clarus** is a streamlined IT support management platform built with Flask. It offers a centralized system for tracking, updating, and resolving IT support tickets with enhanced troubleshooting workflows and user-friendly features.
+**Clarus** is a streamlined IT support management platform built with Flask. It has grown from an IT support tool into a broader internal operations platform with ticketing, asset management, employee records, approvals, and self-service workflows.
 
 ---
 
@@ -47,7 +47,7 @@
 ## 🧪 Tech Stack
 
 - **Backend**: Flask (Python)
-- **Database**: MySQL
+- **Database**: PostgreSQL
 - **Frontend**: HTML + CSS (Vanilla + Templates)
 - **Authentication**: Environment-based credentials
 - **Deployment**: Local server; GitHub Repository
@@ -58,22 +58,39 @@
 
 1. Create a `.env` file in the root directory:
    ```bash
-   MYSQL_HOST=localhost
-   MYSQL_USER=youruser
-   MYSQL_PASSWORD=yourpassword
-   MYSQL_DB=itflask
+   POSTGRES_HOST=localhost
+   POSTGRES_PORT=5432
+   POSTGRES_USER=youruser
+   POSTGRES_PASSWORD=yourpassword
+   POSTGRES_DB=itflask
+   POSTGRES_SCHEMA=public
    SECRET_KEY=yoursecretkey
+   SALT=yoursalt
    ```
 
-2. Install dependencies:
+2. Make sure PostgreSQL exists and the target database is created.
+
+3. Apply the baseline migration:
+   ```bash
+   python scripts/apply_postgres_migrations.py
+   ```
+
+4. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Run the application:
+5. Run the application:
    ```bash
    flask run
    ```
+
+## 🗃️ Database Notes
+
+- The app now uses PostgreSQL through `psycopg2`, not MySQL.
+- The repo-owned baseline schema lives at `database/migrations/001_postgres_baseline.sql`.
+- The migration runner tracks applied files in a `schema_migrations` table inside your configured PostgreSQL schema.
+- If your old local database was partially migrated from MySQL, run the migration script before testing any route changes.
 
 ---
 
