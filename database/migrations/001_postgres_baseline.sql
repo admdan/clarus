@@ -1,4 +1,4 @@
--- Baseline PostgreSQL schema for Clarus / itflask.
+-- Baseline PostgreSQL schema for Clarus.
 -- This migration is intentionally idempotent so it can repair partially-migrated
 -- local databases that were previously switched from MySQL.
 

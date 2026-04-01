@@ -62,7 +62,7 @@
    POSTGRES_PORT=5432
    POSTGRES_USER=youruser
    POSTGRES_PASSWORD=yourpassword
-   POSTGRES_DB=itflask
+   POSTGRES_DB=clarusdb
    POSTGRES_SCHEMA=public
    SECRET_KEY=yoursecretkey
    SALT=yoursalt
