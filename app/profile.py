@@ -45,6 +45,14 @@ def get_target_user_id():
         abort(403)
     return user_id
 
+def get_spouse_for_user(spouse_id, user_id):
+    spouses = get_user_spouses(user_id)
+    return next((spouse for spouse in spouses if spouse['id'] == spouse_id), None)
+
+def get_dependent_for_user(dependent_id, user_id):
+    dependents = get_user_dependents(user_id)
+    return next((dependent for dependent in dependents if dependent['id'] == dependent_id), None)
+
 @profile_bp.route('/')
 @login_required
 def view_profile():
@@ -422,6 +430,10 @@ def add_spouse_info():
 @login_required
 def edit_spouse_info(spouse_id):
     user_id = get_target_user_id()
+    spouse = get_spouse_for_user(spouse_id, user_id)
+    if not spouse:
+        abort(403)
+
     if request.method == 'POST':
         form_data = {
             'spouse_name': request.form.get('spouse_name'),
@@ -437,16 +449,16 @@ def edit_spouse_info(spouse_id):
             'user_id': user_id
         }
         return render_template('profile_sections/family_info.html', **family_data)
-
-    # Lookup spouse by ID from list of dicts
-    spouses = get_user_spouses(user_id)
-    spouse = next((s for s in spouses if s['id'] == spouse_id), None)
     return render_template('profile_sections/edit_spouse_info.html', spouse=spouse, user_id=user_id)
 
 @profile_bp.route('/delete_spouse_info/<int:spouse_id>', methods=['POST'])
 @login_required
 def delete_spouse_info(spouse_id):
     user_id = get_target_user_id()
+    spouse = get_spouse_for_user(spouse_id, user_id)
+    if not spouse:
+        abort(403)
+
     delete_user_spouse(spouse_id)
     family_data = {
         'family': get_user_family(user_id),
@@ -481,6 +493,10 @@ def add_dependent_info():
 @login_required
 def edit_dependent_info(dependent_id):
     user_id = get_target_user_id()
+    dependent = get_dependent_for_user(dependent_id, user_id)
+    if not dependent:
+        abort(403)
+
     if request.method == 'POST':
         form_data = {
             'dependent_name': request.form.get('dependent_name'),
@@ -496,16 +512,16 @@ def edit_dependent_info(dependent_id):
             'user_id': user_id
         }
         return render_template('profile_sections/family_info.html', **family_data)
-
-    # Safely retrieve the specific dependent from the list of dicts
-    dependents = get_user_dependents(user_id)
-    dependent = next((d for d in dependents if d['id'] == dependent_id), None)
     return render_template('profile_sections/edit_dependent_info.html', dependent=dependent, user_id=user_id)
 
 @profile_bp.route('/delete_dependent_info/<int:dependent_id>', methods=['POST'])
 @login_required
 def delete_dependent_info(dependent_id):
     user_id = get_target_user_id()
+    dependent = get_dependent_for_user(dependent_id, user_id)
+    if not dependent:
+        abort(403)
+
     delete_user_dependent(dependent_id)
     family_data = {
         'family': get_user_family(user_id),

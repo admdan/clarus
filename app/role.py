@@ -1,6 +1,6 @@
 import psycopg2.extras
-from flask import Blueprint, request, render_template, redirect, url_for, flash, abort
-from flask_login import login_required, current_user
+from flask import Blueprint, request, render_template
+from flask_login import login_required
 from .db import get_db_connection
 from .routes import roles_required
 
@@ -29,9 +29,6 @@ def update_role(user_id):
     conn.close()
 
     return render_template('partials/user_row.html', user=user)
-
-    flash('Role updated successfully.', 'success')
-    return redirect(url_for('routes.manage_role'))
 
 @role.route('/search-users', methods=['GET'])
 @login_required
