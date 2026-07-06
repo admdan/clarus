@@ -3,7 +3,6 @@ from flask_login import login_user, logout_user, current_user, login_required
 from functools import wraps
 from .models import get_user_by_username, verify_user, verify_reset_token, generate_reset_token, get_user_by_email, insert_user
 from .db import get_db_connection
-from datetime import datetime
 from werkzeug.security import generate_password_hash
 import smtplib
 import psycopg2
@@ -11,6 +10,99 @@ import psycopg2.extras
 from email.mime.text import MIMEText
 
 bp = Blueprint('routes', __name__)
+
+
+def get_portal_modules(role):
+    modules = [{
+        'key': 'profile',
+        'title': 'My Profile',
+        'description': 'View your employee record, upload documents, and keep your personal information up to date.',
+        'cta': 'Open Profile',
+        'endpoint': 'profile.view_profile',
+        'icon': 'profile'
+    }]
+
+    if role in ['admin', 'hr', 'support']:
+        modules.append({
+            'key': 'change_requests',
+            'title': 'Change Review',
+            'description': 'Review employee profile updates, supporting notes, and approval decisions from one queue.',
+            'cta': 'Review Requests',
+            'endpoint': 'change_requests.change_requests_dashboard',
+            'icon': 'requests'
+        })
+        modules.append({
+            'key': 'inventory',
+            'title': 'Asset Records',
+            'description': 'Track employee-issued devices and internal assets in one inventory workspace.',
+            'cta': 'Open Assets',
+            'endpoint': 'routes.aims',
+            'icon': 'assets'
+        })
+    if role in ['admin', 'support']:
+        modules.append({
+            'key': 'troubleshooting',
+            'title': 'IT Service Desk',
+            'description': 'Handle support tickets and troubleshooting as a secondary operations module inside Clarus.',
+            'cta': 'Open Service Desk',
+            'endpoint': 'troubleshooting.troubleshooting_dashboard',
+            'icon': 'support'
+        })
+    if role in ['admin']:
+        modules.append({
+            'key': 'manage_role',
+            'title': 'Access Management',
+            'description': 'Manage employee access levels and keep role assignments aligned with HR responsibilities.',
+            'cta': 'Manage Access',
+            'endpoint': 'routes.manage_role',
+            'icon': 'shield'
+        })
+
+    return modules
+
+
+def get_portal_stats(user_id, role):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) AS total FROM change_requests WHERE user_id = %s AND status = 'Pending'",
+            (user_id,)
+        )
+        my_pending_requests = cursor.fetchone()['total']
+
+        cursor.execute(
+            "SELECT COUNT(*) AS total FROM user_documents WHERE user_id = %s",
+            (user_id,)
+        )
+        my_documents = cursor.fetchone()['total']
+
+        stats = [
+            {'label': 'My Pending Requests', 'value': my_pending_requests},
+            {'label': 'My Uploaded Documents', 'value': my_documents},
+        ]
+
+        if role in ['admin', 'hr', 'support']:
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM change_requests WHERE status = 'Pending'"
+            )
+            pending_reviews = cursor.fetchone()['total']
+
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM user_documents WHERE status = 'Pending'"
+            )
+            pending_documents = cursor.fetchone()['total']
+
+            stats.extend([
+                {'label': 'Pending Approvals', 'value': pending_reviews},
+                {'label': 'Documents Awaiting Review', 'value': pending_documents},
+            ])
+
+        return stats
+    finally:
+        cursor.close()
+        conn.close()
 
 def get_recent_notifications(user_id, role, limit=10):
     conn = get_db_connection()
@@ -199,29 +291,19 @@ def reset_password(token):
 @bp.route('/portal')
 @login_required
 def portal():
-    modules = []
     role = getattr(current_user, 'role', 'basic')
-
-    if role in ['admin']:
-        modules.append('manage_role')
-    if role in ['admin', 'support']:
-        modules.append('troubleshooting')
-    if role in ['admin', 'hr', 'support']:
-        modules.append('inventory')
-    if role in ['admin', 'hr', 'support']:
-        modules.append('eip')
-
-    modules.append('profile')
-
     welcome_message = f"Welcome back, {current_user.username}!"
-
     notifications = get_recent_notifications(current_user.id, role)
+    modules = get_portal_modules(role)
+    stats = get_portal_stats(current_user.id, role)
 
     return render_template(
         'portal.html',
         modules=modules,
+        stats=stats,
         welcome_message=welcome_message,
-        notifications=notifications
+        notifications=notifications,
+        portal_subtitle="Your employee self-service hub for records, requests, and internal updates."
     )
 
 @bp.route('/notifications-panel')
