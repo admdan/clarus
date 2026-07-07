@@ -481,6 +481,33 @@ def add_user_document(user_id, document_type, file_path, status="Pending", displ
     conn.close()
     return new_id
 
+
+def get_user_document_by_id(doc_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute('''
+        SELECT d.*, u.username
+        FROM user_documents d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = %s
+    ''', (doc_id,))
+    document = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return document
+
+
+def update_user_document_status(doc_id, status):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE user_documents SET status = %s WHERE id = %s",
+        (status, doc_id)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 def get_user_profile_picture(user_id):
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)

@@ -11,7 +11,7 @@ from .profile_utils import (
     update_user_family, get_user_family,
     get_user_spouses, add_user_spouse, update_user_spouse, delete_user_spouse,
     get_user_dependents, add_user_dependent, update_user_dependent, delete_user_dependent,
-    get_user_documents, add_user_document,
+    get_user_documents, add_user_document, get_user_document_by_id, update_user_document_status,
     update_user_profile_picture, get_user_profile_picture, allowed_file
 )
 from werkzeug.utils import secure_filename
@@ -550,7 +550,13 @@ def is_file_safe(filepath):
 def document_info():
     user_id = get_target_user_id()
     documents = get_user_documents(user_id)
-    return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
+    return render_template(
+        'profile_sections/document_info.html',
+        documents=documents,
+        user_id=user_id,
+        document_status_message=None,
+        document_status_category=None
+    )
 
 @profile_bp.route('/upload_documents', methods=['POST'])
 @login_required
@@ -596,7 +602,13 @@ def upload_documents():
     add_user_document(user_id, doc_type, file_path, display_name=display_name)
 
     documents = get_user_documents(user_id)
-    return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
+    return render_template(
+        'profile_sections/document_info.html',
+        documents=documents,
+        user_id=user_id,
+        document_status_message="Document uploaded successfully. It is now pending HR review.",
+        document_status_category="success"
+    )
 
 @profile_bp.route('/delete_document/<int:doc_id>', methods=['POST'])
 @login_required
@@ -629,7 +641,39 @@ def delete_document(doc_id):
     conn.close()
 
     documents = get_user_documents(user_id)
-    return render_template('profile_sections/document_info.html', documents=documents, user_id=user_id)
+    return render_template(
+        'profile_sections/document_info.html',
+        documents=documents,
+        user_id=user_id,
+        document_status_message="Document deleted successfully.",
+        document_status_category="success"
+    )
+
+
+@profile_bp.route('/document_status/<int:doc_id>', methods=['POST'])
+@login_required
+def update_document_status_route(doc_id):
+    if current_user.role not in ['admin', 'hr', 'support']:
+        abort(403)
+
+    new_status = request.form.get('status')
+    if new_status not in ['Pending', 'Approved', 'Declined']:
+        return "Invalid status", 400
+
+    document = get_user_document_by_id(doc_id)
+    if not document:
+        return "Not found", 404
+
+    update_user_document_status(doc_id, new_status)
+    documents = get_user_documents(document['user_id'])
+
+    return render_template(
+        'profile_sections/document_info.html',
+        documents=documents,
+        user_id=document['user_id'],
+        document_status_message=f"Document status updated to {new_status}.",
+        document_status_category="success"
+    )
 
 @profile_bp.route('/profile_picture')
 @login_required
