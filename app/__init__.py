@@ -5,7 +5,7 @@ from .models import get_user
 from .asset import asset_bp
 from .profile import profile_bp
 from .role import role
-from .eip import eip_bp
+from .change_requests import change_requests_bp
 from .routes import bp
 from .troubleshooting import troubleshooting_bp
 
@@ -31,7 +31,7 @@ def create_app():
         app.register_blueprint(asset_bp)
         app.register_blueprint(profile_bp)
         app.register_blueprint(role)
-        app.register_blueprint(eip_bp)
+        app.register_blueprint(change_requests_bp)
 
     @app.after_request
     def add_cache_control_headers(response):

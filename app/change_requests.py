@@ -6,12 +6,12 @@ from .routes import roles_required
 from datetime import datetime
 from .profile_utils import create_empty_profile_if_missing
 
-eip_bp = Blueprint('eip', __name__, url_prefix='/eip')
+change_requests_bp = Blueprint('change_requests', __name__, url_prefix='/change-requests')
 
-@eip_bp.route('/')
+@change_requests_bp.route('/')
 @login_required
 @roles_required('admin', 'hr', 'support')
-def eip_dashboard():
+def change_requests_dashboard():
     page = int(request.args.get('page', 1))
     per_page = 10
     offset = (page - 1) * per_page
@@ -71,29 +71,103 @@ def eip_dashboard():
     cursor.execute(main_query, params)
     change_requests = cursor.fetchall()
 
+    document_conditions = []
+    document_params = []
+
+    if status_filter:
+        document_conditions.append("d.status = %s")
+        document_params.append(status_filter)
+
+    if search_query:
+        like_value = f"%{search_query}%"
+        document_conditions.append(
+            "(u.username ILIKE %s OR u.email ILIKE %s OR COALESCE(d.display_name, d.document_type) ILIKE %s)"
+        )
+        document_params.extend([like_value, like_value, like_value])
+
+    document_where_clause = "WHERE " + " AND ".join(document_conditions) if document_conditions else ""
+    document_query = f"""
+        SELECT d.id,
+               d.user_id,
+               d.document_type,
+               d.display_name,
+               d.file_path,
+               d.status,
+               d.uploaded_at,
+               u.username,
+               u.email
+        FROM user_documents d
+        JOIN users u ON d.user_id = u.id
+        {document_where_clause}
+        ORDER BY
+            CASE WHEN d.status = 'Pending' THEN 0 ELSE 1 END,
+            d.uploaded_at DESC,
+            d.id DESC
+        LIMIT 20
+    """
+    cursor.execute(document_query, document_params)
+    document_reviews = cursor.fetchall()
+
     cursor.close()
     conn.close()
 
     if request.headers.get('HX-Request'):
         return render_template(
-            'partials/eip_table.html',
+            'partials/review_queue_content.html',
             change_requests=change_requests,
+            document_reviews=document_reviews,
             current_page=page,
             total_pages=total_pages,
             status_filter=status_filter,
-            search_query=search_query
+            search_query=search_query,
+            pending_count=get_status_count('Pending'),
+            approved_count=get_status_count('Approved'),
+            declined_count=get_status_count('Declined'),
+            pending_document_count=get_pending_document_count()
         )
     else:
         return render_template(
-            'eip.html',
+            'change_requests.html',
             change_requests=change_requests,
+            document_reviews=document_reviews,
             current_page=page,
             total_pages=total_pages,
             status_filter=status_filter,
-            search_query=search_query
+            search_query=search_query,
+            pending_count=get_status_count('Pending'),
+            approved_count=get_status_count('Approved'),
+            declined_count=get_status_count('Declined'),
+            pending_document_count=get_pending_document_count()
         )
 
-@eip_bp.route('/approve/<int:request_id>', methods=['POST'])
+
+def get_status_count(status):
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) AS total FROM change_requests WHERE status = %s",
+            (status,)
+        )
+        return cursor.fetchone()['total']
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_pending_document_count():
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    try:
+        cursor.execute(
+            "SELECT COUNT(*) AS total FROM user_documents WHERE status = 'Pending'"
+        )
+        return cursor.fetchone()['total']
+    finally:
+        cursor.close()
+        conn.close()
+
+@change_requests_bp.route('/approve/<int:request_id>', methods=['POST'])
 @login_required
 @roles_required('admin', 'hr', 'support')
 def approve_change_request(request_id):
@@ -108,7 +182,7 @@ def approve_change_request(request_id):
         flash("Invalid or already processed request.", "danger")
         cursor.close()
         conn.close()
-        return redirect(url_for('eip.eip_dashboard'))
+        return redirect(url_for('change_requests.change_requests_dashboard'))
 
     field = req['field_requested']
     value = req['new_value']
@@ -153,7 +227,7 @@ def approve_change_request(request_id):
         flash(f"Field '{field}' is not supported for auto-update.", "warning")
         cursor.close()
         conn.close()
-        return redirect(url_for('eip.eip_dashboard'))
+        return redirect(url_for('change_requests.change_requests_dashboard'))
 
     table, column = field_map[field]
 
@@ -165,7 +239,7 @@ def approve_change_request(request_id):
             flash("Date must be in YYYY-MM-DD format.", "danger")
             cursor.close()
             conn.close()
-            return redirect(url_for('eip.eip_dashboard'))
+            return redirect(url_for('change_requests.change_requests_dashboard'))
 
     # ───── EXECUTE UPDATE ─────
     try:
@@ -180,7 +254,7 @@ def approve_change_request(request_id):
                     "Vehicle change requests need manual review when a user has multiple vehicle records.",
                     "warning"
                 )
-                return redirect(url_for('eip.eip_dashboard'))
+                return redirect(url_for('change_requests.change_requests_dashboard'))
 
         cursor.execute(
             f"""
@@ -216,9 +290,9 @@ def approve_change_request(request_id):
         cursor.close()
         conn.close()
 
-    return redirect(url_for('eip.eip_dashboard'))
+    return redirect(url_for('change_requests.change_requests_dashboard'))
 
-@eip_bp.route('/decline/<int:request_id>', methods=['POST'])
+@change_requests_bp.route('/decline/<int:request_id>', methods=['POST'])
 @login_required
 @roles_required('admin', 'hr', 'support')
 def decline_change_request(request_id):
@@ -238,4 +312,4 @@ def decline_change_request(request_id):
     cursor.close()
     conn.close()
     flash("Change request declined.", "info")
-    return redirect(url_for('eip.eip_dashboard'))
+    return redirect(url_for('change_requests.change_requests_dashboard'))
