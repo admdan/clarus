@@ -1,0 +1,30 @@
+:root[data-bs-theme="light"] {
+  --bs-body-bg: #f8f9fa;
+  --bs-body-color: #212529;
+}
+
+:root[data-bs-theme="dark"] {
+  --bs-body-bg: #121212;
+  --bs-body-color: #f8f9fa;
+}
+
+body {
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#themeToggle {
+  font-size: 1.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+[data-bs-theme="dark"] #themeIcon {
+  color: white;
+}
+
+[data-bs-theme="light"] #themeIcon {
+  color: #212529;
+}
