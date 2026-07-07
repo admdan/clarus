@@ -1,0 +1,118 @@
+.nav-tabs .nav-link {
+  position: relative;
+  transition: background-color 0.3s, color 0.3s, transform 0.2s;
+}
+
+.nav-tabs .nav-link:hover {
+  background-color: rgba(13, 110, 253, 0.15);
+  transform: translateY(-2px);
+  color: var(--bs-primary);
+  border-color: transparent;
+  cursor: pointer;
+}
+
+[data-bs-theme="dark"] .nav-tabs .nav-link:hover {
+  background-color: rgba(13, 110, 253, 0.3);
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: bold;
+  border-bottom: 2px solid var(--bs-primary);
+}
+
+.profile-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background-color: var(--bs-card-bg);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s, transform 0.3s ease;
+}
+
+.profile-left {
+  flex: 0 0 auto;
+}
+
+.profile-right {
+  flex: 1 1 auto;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+[data-bs-theme="dark"] .profile-card {
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.08);
+}
+
+.profile-card:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  transform: scale(1.01);
+}
+
+[data-bs-theme="dark"] .profile-card:hover {
+  box-shadow: 0 4px 24px rgba(255, 255, 255, 0.1), 0 1px 3px rgba(255, 255, 255, 0.05);
+  transform: scale(1.01);
+}
+
+.profile-avatar {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(0, 123, 255, 0.25);
+}
+
+.change-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.58);
+  z-index: 2000;
+}
+
+.change-modal-overlay.is-open {
+  display: flex;
+}
+
+.change-modal-panel {
+  width: min(100%, 32rem);
+  border-radius: 16px;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.change-modal-header,
+.change-modal-footer {
+  padding: 1rem 1.25rem;
+  border-color: rgba(128, 128, 128, 0.2);
+}
+
+.change-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.change-modal-body {
+  padding: 1.25rem;
+}
