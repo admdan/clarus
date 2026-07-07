@@ -1,46 +1,48 @@
-# Clarus — Clearer IT, Faster Fixes 🛠️
+# Clarus — Employee Records, Requests, and Self-Service
 
-**Clarus** is a streamlined IT support management platform built with Flask. It has grown from an IT support tool into a broader internal operations platform with ticketing, asset management, employee records, approvals, and self-service workflows.
+**Clarus** is an internal HR and employee self-service platform built with Flask. It is designed to centralize employee records, document handling, profile change requests, approvals, and role-based access in one internal portal.
 
 ---
 
 ## 🔧 Features
 
-1. **Ticket Logging**: Submit detailed support tickets including user name, device ID, and issue description.
-2. **Status Tracking**: Track each issue through statuses — *Open*, *In Progress*, and *Resolved*.
-3. **Troubleshooting Logs**: Document troubleshooting steps and maintain a historical log for transparency and learning.
-4. **Dynamic Dashboard**: Access a searchable, filterable, and sortable dashboard for all active tickets.
-5. **Recent Activity Feed**: View the five most recently updated tickets for rapid context.
+1. **Employee Profiles**: Manage employee personal, employment, banking, family, and identity information.
+2. **Self-Service Updates**: Let employees submit profile changes instead of editing sensitive fields directly.
+3. **Document Handling**: Upload and review employee documents in one place.
+4. **Approval Workflow**: Review, approve, or decline change requests through an internal queue.
+5. **Role-Based Access**: Separate employee, HR, support, and admin experiences.
 6. **Secure by Design**: Local-first storage with environment-based credentials, avoiding hardcoded secrets.
 
 ---
 
 ## 📋 Development Roadmap
 
-### ✅ Phase 1: Foundation Build (v0.1)
+### ✅ V1: HR Self-Service Core
 
-- [x] Add, update, delete ticket functionality
-- [x] Basic troubleshooting documentation per ticket
-- [x] Status selection and update
-- [x] Dashboard for all tickets
-- [x] Recent updates feed
-- [x] Search and filter by query or status
+- [x] Authentication and session handling
+- [x] Role-based access for admin, HR, support, and employee roles
+- [x] Employee profile sections for personal, employment, family, banking, and identity data
+- [x] Change request submission flow
+- [x] HR/admin review queue for employee updates
+- [x] Employee document uploads
+- [x] Internal notifications
 
-### 🧩 Phase 2: Enhancements (v0.2)
+### 🧩 V1.5: Stabilization and UX
 
-- [ ] Scaling troubleshooting details (more columns, more info can be manipulated)
-- [ ] Role-based access (admin vs user)
-- [ ] Device history log
-- [ ] Sort and prioritize based on urgency
-- [ ] File upload for screenshots or logs
-- [ ] Email notification system (MFA alerts or ticket status updates)
+- [ ] Better portal/dashboard copy and consistency
+- [ ] Stronger approval queue filtering and review workflow
+- [ ] Search across employees and requests
+- [ ] Better validation for uploads and change requests
+- [ ] Test coverage for auth, profile, and approvals
+- [ ] Clearer architecture and contributor documentation
 
-### 🎯 Phase 3: Quality of Life
+### 🎯 V2: Operations Expansion
 
-- [ ] Export tickets to PDF or CSV
-- [ ] Mobile-responsive layout
-- [ ] Custom themes per department
-- [ ] Dark mode toggle
+- [ ] Employee onboarding and offboarding workflows
+- [ ] Department-friendly reporting and exports
+- [ ] Employee-issued asset tracking refinement
+- [ ] IT ticketing and troubleshooting as a secondary module
+- [ ] Device history and support workflows
 
 ---
 
@@ -48,9 +50,9 @@
 
 - **Backend**: Flask (Python)
 - **Database**: PostgreSQL
-- **Frontend**: HTML + CSS (Vanilla + Templates)
+- **Frontend**: Jinja templates, Bootstrap, HTMX, and light vanilla JavaScript
 - **Authentication**: Environment-based credentials
-- **Deployment**: Local server; GitHub Repository
+- **Deployment**: Local server; GitHub repository
 
 ---
 
@@ -82,12 +84,17 @@
 
 5. Run the application:
    ```bash
-   flask run
+   python run.py
    ```
+
+6. Development reload:
+   - `run.py` uses Flask's built-in debug reloader.
+   - Python and template changes restart the development server automatically.
+   - You may still need a browser refresh to see updated page output.
 
 ## 🗃️ Database Notes
 
-- The app now uses PostgreSQL through `psycopg2`, not MySQL.
+- The app uses PostgreSQL through `psycopg2`, not MySQL.
 - The repo-owned baseline schema lives at `database/migrations/001_postgres_baseline.sql`.
 - The migration runner tracks applied files in a `schema_migrations` table inside your configured PostgreSQL schema.
 - If your old local database was partially migrated from MySQL, run the migration script before testing any route changes.
@@ -103,3 +110,7 @@
 ## 📌 Status
 
 🟢 **Active Development**
+
+Current product direction:
+- HR-first employee self-service portal
+- IT support and troubleshooting retained as a later supporting module
