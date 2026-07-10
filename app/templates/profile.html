@@ -2,119 +2,23 @@
 <html lang="en" data-bs-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <title>{{ profile.basic.full_name or 'User' }}'s Profile | Clarus</title>
+  <title>{{ profile.basic.full_name or 'User' }} | Clarus Employee Profile</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
-  <style>
-    :root[data-bs-theme="light"] {
-      --bs-body-bg: #f8f9fa;
-      --bs-body-color: #212529;
-    }
-    :root[data-bs-theme="dark"] {
-      --bs-body-bg: #121212;
-      --bs-body-color: #f8f9fa;
-    }
-    body {
-      background-color: var(--bs-body-bg);
-      color: var(--bs-body-color);
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-    #themeToggle {
-      font-size: 1.25rem;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-    }
-    [data-bs-theme="dark"] #themeIcon {
-      color: white;
-    }
-    [data-bs-theme="light"] #themeIcon {
-      color: #212529;
-    }
-    .nav-tabs .nav-link {
-      transition: background-color 0.2s, color 0.2s;
-    }
-    .nav-tabs .nav-link:hover {
-      background-color: rgba(0, 123, 255, 0.1);
-      cursor: pointer;
-    }
-    .profile-card {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      padding: 1.5rem;
-      border-radius: 12px;
-      background-color: var(--bs-card-bg);
-      box-shadow: 0 0 12px rgba(0,0,0,0.1); /* Light mode shadow */
-      transition: box-shadow 0.3s, transform 0.3s ease;
-    }
-    .profile-left {
-      flex: 0 0 auto;
-    }
-    .profile-right {
-      flex: 1 1 auto;
-      animation: fadeIn 0.5s ease;
-    }
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .nav-tabs .nav-link {
-      transition: background-color 0.3s, color 0.3s, transform 0.2s;
-      position: relative;
-    }
-
-    .nav-tabs .nav-link:hover {
-      background-color: rgba(13, 110, 253, 0.15); /* soft Bootstrap primary */
-      transform: translateY(-2px);
-      color: var(--bs-primary);
-      border-color: transparent;
-    }
-
-    [data-bs-theme="dark"] .profile-card {
-      box-shadow: 0 0 16px rgba(255, 255, 255, 0.08); /* Soft white glow in dark mode */
-    }
-
-    .profile-card:hover {
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2); /* Light mode hover */
-      transform: scale(1.01);
-    }
-
-    /* Profile picture hover animation */
-    .profile-avatar {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .profile-avatar:hover {
-      transform: scale(1.05);
-      box-shadow: 0 4px 20px rgba(0, 123, 255, 0.25);
-    }
-
-    [data-bs-theme="dark"] .profile-card:hover {
-      box-shadow: 0 4px 24px rgba(255, 255, 255, 0.1), 0 1px 3px rgba(255, 255, 255, 0.05); !important; /* Dark mode hover glow */
-      transform: scale(1.01);
-    }
-
-    [data-bs-theme="dark"] .nav-tabs .nav-link:hover {
-      background-color: rgba(13, 110, 253, 0.3); /* slightly stronger in dark */
-    }
-
-    .nav-tabs .nav-link.active {
-      font-weight: bold;
-      border-bottom: 2px solid var(--bs-primary);
-    }
-  </style>
+  <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='css/profile.css') }}" rel="stylesheet" />
 </head>
 <body>
-<div class="container py-5">
+<div
+  class="container py-5"
+  id="profilePage"
+  data-request-change-url="{{ url_for('profile.request_change') }}?user_id={{ user_id }}"
+>
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="bi bi-person-gear me-2"></i>Profile Management</h2>
+    <div>
+      <h2 class="mb-1"><i class="bi bi-person-gear me-2"></i>Employee Profile</h2>
+      <p class="text-muted mb-0">Manage your employee record, submit updates, and keep supporting documents in one place.</p>
+    </div>
     <div class="d-flex gap-2 align-items-center">
       <button id="themeToggle" onclick="toggleTheme()" aria-label="Toggle Theme">
         <i class="bi bi-brightness-high-fill" id="themeIcon"></i>
@@ -155,38 +59,45 @@
 
   <!-- Tab Content -->
   <div class="tab-content">
-    <div class="tab-pane fade show active" id="basic" role="tabpanel"
-         data-hx-get="{{ url_for('profile.basic_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading basic info...</div>
-    <div class="tab-pane fade" id="pii" role="tabpanel"
-         data-hx-get="{{ url_for('profile.pii_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading PII info...</div>
-    <div class="tab-pane fade" id="employment" role="tabpanel"
-         data-hx-get="{{ url_for('profile.employment_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading employment info...</div>
-    <div class="tab-pane fade" id="banking" role="tabpanel"
-         data-hx-get="{{ url_for('profile.banking_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading banking info...</div>
-    <div class="tab-pane fade" id="vehicles" role="tabpanel"
-         data-hx-get="{{ url_for('profile.vehicles_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading vehicles info...</div>
-    <div class="tab-pane fade" id="family" role="tabpanel"
-         data-hx-get="{{ url_for('profile.family_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading family info...</div>
-    <div class="tab-pane fade" id="documents" role="tabpanel"
-         data-hx-get="{{ url_for('profile.document_info') }}?user_id={{ user_id }}"
-         data-hx-trigger="revealed"
-         data-hx-swap="innerHTML">Loading document upload section...</div>
+    <div class="tab-pane fade show active" id="basic" role="tabpanel">
+      {% with profile=profile.basic, user_id=user_id %}
+        {% include 'profile_sections/basic_info.html' %}
+      {% endwith %}
+    </div>
+    <div class="tab-pane fade" id="pii" role="tabpanel">
+      {% with pii=profile.pii, user_id=user_id %}
+        {% include 'profile_sections/pii_info.html' %}
+      {% endwith %}
+    </div>
+    <div class="tab-pane fade" id="employment" role="tabpanel">
+      {% with employment=profile.employment, user_id=user_id %}
+        {% include 'profile_sections/employment_info.html' %}
+      {% endwith %}
+    </div>
+    <div class="tab-pane fade" id="banking" role="tabpanel">
+      {% with banking=profile.bank, user_id=user_id %}
+        {% include 'profile_sections/banking_info.html' %}
+      {% endwith %}
+    </div>
+    <div class="tab-pane fade" id="vehicles" role="tabpanel">
+      {% with vehicles=profile.vehicles, user_id=user_id %}
+        {% include 'profile_sections/vehicles_info.html' %}
+      {% endwith %}
+    </div>
+    <div class="tab-pane fade" id="family" role="tabpanel">
+      {% with family=profile.family, spouses=profile.spouses, dependents=profile.dependents, user_id=user_id %}
+        {% include 'profile_sections/family_info.html' %}
+      {% endwith %}
+    </div>
+    <div class="tab-pane fade" id="documents" role="tabpanel">
+      {% with documents=profile.documents, user_id=user_id, document_status_message=None, document_status_category=None %}
+        {% include 'profile_sections/document_info.html' %}
+      {% endwith %}
+    </div>
     <div class="tab-pane fade" id="devices" role="tabpanel">
       <div class="card shadow-sm mt-3">
         <div class="card-body">
-          <h5 class="card-title mb-3">Assigned Devices</h5>
+        <h5 class="card-title mb-3">Assigned Company Assets</h5>
           {% if assigned_assets %}
           <table class="table table-striped">
             <thead><tr>
@@ -210,104 +121,39 @@
             </tbody>
           </table>
           {% else %}
-          <p class="text-muted">No devices assigned to you.</p>
+          <p class="text-muted">No company assets are currently assigned to this employee.</p>
           {% endif %}
         </div>
       </div>
     </div>
   </div>
 </div>
-<!-- Change Request Modal (Global) -->
-<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form class="modal-content" onsubmit="submitChangeRequest(event)">
-      <div class="modal-header">
-        <h5 class="modal-title">Request Change</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="change-modal-overlay" id="changeModal" aria-hidden="true">
+  <div class="change-modal-panel">
+    <form onsubmit="submitChangeRequest(event)">
+      <div class="change-modal-header">
+        <h5 class="modal-title mb-0">Submit Update Request</h5>
+        <button type="button" class="btn-close" onclick="closeChangeRequestModal()" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="change-modal-body">
         <input type="hidden" id="changeField" />
+        <div class="mb-3" id="inputGroup"></div>
         <div class="mb-3">
-          <label class="form-label">New Value</label>
-          <input type="text" class="form-control" id="newValue" required />
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Reason (optional)</label>
+          <label class="form-label">Reason or context (optional)</label>
           <textarea class="form-control" id="changeNote" rows="2"></textarea>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">Submit Request</button>
+      <div class="change-modal-footer d-flex justify-content-end gap-2 border-top">
+        <button type="button" class="btn btn-outline-secondary" onclick="closeChangeRequestModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="changeRequestSubmit">Send Request</button>
       </div>
     </form>
   </div>
 </div>
-
-<script>
-  function setChangeField(field) {
-    document.getElementById('changeField').value = field;
-    document.getElementById('newValue').value = '';
-    document.getElementById('changeNote').value = '';
-  }
-
-  function submitChangeRequest(e) {
-    e.preventDefault();
-    const field = document.getElementById('changeField').value;
-    const newValue = document.getElementById('newValue').value;
-    const note = document.getElementById('changeNote').value;
-
-    fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ field, new_value: newValue, note })
-    }).then(res => {
-      if (res.ok) {
-        alert("Change request submitted.");
-        bootstrap.Modal.getInstance(document.getElementById('changeModal')).hide();
-      } else {
-        alert("Error submitting request.");
-      }
-    });
-  }
-</script>
-
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/htmx.org@1.9.5"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-      document.documentElement.setAttribute('data-bs-theme', savedTheme);
-      document.getElementById('themeIcon').className =
-        savedTheme === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
-    }
-  });
-  function toggleTheme() {
-    const html = document.documentElement;
-    const icon = document.getElementById('themeIcon');
-    const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-bs-theme', next);
-    icon.className = next === 'dark' ? 'bi bi-moon-stars-fill' : 'bi bi-brightness-high-fill';
-    localStorage.setItem('theme', next);
-  }
-
-  function requestChange(field) {
-    fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ field })
-    })
-    .then(res => {
-      if (res.ok) {
-        alert("Request submitted. Admin will review it.");
-      } else {
-        alert("Failed to submit request.");
-      }
-    });
-  }
-
-</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
 </body>
 </html>
 
