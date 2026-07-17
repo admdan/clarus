@@ -12,9 +12,9 @@
                 <input type="text" name="full_name" class="form-control bg-dark-subtle" value="{{ profile.full_name or '' }}" readonly>
                 <button type="button"
                         class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Full Name', 'text')">
+                        data-change-field="Full Name"
+                        data-change-type="text"
+                        onclick="openChangeRequestModal(this)">
                     Request Change
                 </button>
             </div>
@@ -23,9 +23,9 @@
                 <input type="date" name="date_of_birth" class="form-control bg-primary-subtle" name="date_of_birth" value="{{ profile.date_of_birth or '' }}" readonly>
                 <button type="button"
                         class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Date of Birth', 'date')">
+                        data-change-field="Date of Birth"
+                        data-change-type="date"
+                        onclick="openChangeRequestModal(this)">
                     Request Change
                 </button>
             </div>
@@ -34,9 +34,10 @@
                 <input type="text" name="gender" class="form-control bg-primary-subtle" value="{{ profile.gender or '' }}" readonly>
                 <button type="button"
                         class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Gender', 'select')">
+                        data-change-field="Gender"
+                        data-change-type="select"
+                        data-change-options="Male|Female|Other"
+                        onclick="openChangeRequestModal(this)">
                     Request Change
                 </button>
             </div>
@@ -45,9 +46,9 @@
                 <input type="text" name="contact_number" class="form-control bg-primary-subtle" name="contact_number" value="{{ profile.contact_number or '' }}" readonly>
                 <button type="button"
                         class="btn btn-sm btn-outline-danger mt-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#changeModal"
-                        onclick="setChangeField('Contact Number', 'tel')">
+                        data-change-field="Contact Number"
+                        data-change-type="tel"
+                        onclick="openChangeRequestModal(this)">
                     Request Change
                 </button>
             </div>
@@ -72,86 +73,4 @@
         </div>
     </form>
 </div>
-
-<!-- Change Request Modal -->
-<div class="modal fade" id="changeModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <form class="modal-content" onsubmit="submitChangeRequest(event)">
-      <div class="modal-header">
-        <h5 class="modal-title">Request Change</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <input type="hidden" id="changeField" />
-        <div class="mb-3" id="inputGroup">
-          <!-- This will be dynamically generated -->
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Reason (optional)</label>
-          <textarea class="form-control" id="changeNote" rows="2"></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">Submit Request</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-function setChangeField(field, type = "text") {
-  document.getElementById('changeField').value = field;
-  const group = document.getElementById('inputGroup');
-  group.innerHTML = '';
-
-  const label = document.createElement("label");
-  label.className = "form-label";
-  label.innerText = "New Value";
-  group.appendChild(label);
-
-  let input;
-
-  if (type === "select" && field === "Gender") {
-    input = document.createElement("select");
-    input.className = "form-select";
-    input.id = "newValue";
-    ["Male", "Female", "Other"].forEach(option => {
-      const opt = document.createElement("option");
-      opt.value = option;
-      opt.text = option;
-      input.appendChild(opt);
-    });
-  } else {
-    input = document.createElement("input");
-    input.className = "form-control";
-    input.id = "newValue";
-    input.type = type;
-  }
-
-  input.required = true;
-  group.appendChild(input);
-}
-
-function submitChangeRequest(e) {
-  e.preventDefault();
-  const field = document.getElementById('changeField').value;
-  const new_value = document.getElementById('newValue').value;
-  const note = document.getElementById('changeNote').value;
-
-  fetch("{{ url_for('profile.request_change') }}?user_id={{ user_id }}", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ field, new_value, note })
-  }).then(res => {
-    if (res.ok) {
-      alert("Change request submitted.");
-      bootstrap.Modal.getInstance(document.getElementById('changeModal')).hide();
-    } else {
-      alert("Failed to submit change request.");
-    }
-  });
-}
-</script>
-
-<script src="https://unpkg.com/htmx.org@1.9.5"></script>
 
