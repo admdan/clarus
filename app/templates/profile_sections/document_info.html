@@ -1,7 +1,15 @@
 <div id="document-upload-section">
     <div class="card shadow-sm my-4">
       <div class="card-body">
-        <h5 class="card-title">Document Uploads</h5>
+        <h5 class="card-title">Employee Documents</h5>
+        <p class="text-muted small">Upload supporting documents for your employee record. Accepted formats: PDF, JPG, and PNG.</p>
+        <p class="text-muted small mb-4">New uploads start as <strong>Pending</strong> until an HR reviewer updates the status.</p>
+
+        {% if document_status_message %}
+          <div class="alert alert-{{ 'success' if document_status_category == 'success' else 'danger' }} small">
+            {{ document_status_message }}
+          </div>
+        {% endif %}
 
         <form
           hx-post="{{ url_for('profile.upload_documents') }}?user_id={{ user_id }}"
@@ -24,7 +32,7 @@
             </select>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Display Name</label>
+            <label class="form-label">Document Label</label>
             <input type="text" name="display_name" class="form-control bg-dark-subtle" required placeholder="e.g. Passport Page 1">
           </div>
           <div class="col-md-6">
@@ -32,7 +40,7 @@
             <input type="file" name="document" class="form-control bg-dark-subtle" accept=".pdf,.jpg,.jpeg,.png" required>
           </div>
           <div class="col-12">
-            <button class="btn btn-primary" type="submit">Upload</button>
+            <button class="btn btn-primary" type="submit">Upload Document</button>
           </div>
         </form>
 
@@ -44,8 +52,17 @@
               <div>
                 <strong>{{ loop.index }}. {{ doc.display_name or doc.document_type|capitalize }}</strong><br>
                 <small class="text-muted ms-2">
-                  Uploaded by: {{ doc.username }} on {{ doc.uploaded_at.strftime('%d %B %Y, %I:%M %p') }}
+                  Uploaded on {{ doc.uploaded_at.strftime('%d %B %Y, %I:%M %p') }}
                 </small>
+                <div class="mt-2">
+                  {% if doc.status == 'Approved' %}
+                    <span class="badge text-bg-success">Approved</span>
+                  {% elif doc.status == 'Declined' %}
+                    <span class="badge text-bg-danger">Declined</span>
+                  {% else %}
+                    <span class="badge text-bg-warning">Pending Review</span>
+                  {% endif %}
+                </div>
               </div>
                 <div>
                   <button
@@ -55,7 +72,7 @@
                     data-bs-target="#preview-{{ doc.id }}"
                     aria-expanded="false"
                     aria-controls="preview-{{ doc.id }}"
-                  >Toggle Preview</button>
+                  >Preview</button>
                   <button
                     class="btn btn-sm btn-danger"
                     hx-post="{{ url_for('profile.delete_document', doc_id=doc.id) }}?user_id={{ user_id }}"
@@ -65,6 +82,52 @@
                   >Delete</button>
                 </div>
               </div>
+
+              {% if current_user.role in ['admin', 'hr', 'support'] %}
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  {% if doc.status == 'Pending' %}
+                    <form
+                      hx-post="{{ url_for('profile.update_document_status_route', doc_id=doc.id) }}?user_id={{ user_id }}"
+                      hx-target="#document-upload-section"
+                      hx-swap="outerHTML"
+                      class="d-inline"
+                    >
+                      <input type="hidden" name="status" value="Approved">
+                      <button class="btn btn-sm btn-outline-success" type="submit">Approve</button>
+                    </form>
+                    <form
+                      hx-post="{{ url_for('profile.update_document_status_route', doc_id=doc.id) }}?user_id={{ user_id }}"
+                      hx-target="#document-upload-section"
+                      hx-swap="outerHTML"
+                      class="d-inline"
+                    >
+                      <input type="hidden" name="status" value="Declined">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Decline</button>
+                    </form>
+                  {% else %}
+                    <form
+                      hx-post="{{ url_for('profile.update_document_status_route', doc_id=doc.id) }}?user_id={{ user_id }}"
+                      hx-target="#document-upload-section"
+                      hx-swap="outerHTML"
+                      class="d-inline"
+                    >
+                      <input type="hidden" name="status" value="Pending">
+                      <button class="btn btn-sm btn-outline-warning" type="submit">Reopen Review</button>
+                    </form>
+                    <form
+                      hx-post="{{ url_for('profile.update_document_status_route', doc_id=doc.id) }}?user_id={{ user_id }}"
+                      hx-target="#document-upload-section"
+                      hx-swap="outerHTML"
+                      class="d-inline"
+                    >
+                      <input type="hidden" name="status" value="{% if doc.status == 'Approved' %}Declined{% else %}Approved{% endif %}">
+                      <button class="btn btn-sm btn-outline-secondary" type="submit">
+                        Mark {% if doc.status == 'Approved' %}Declined{% else %}Approved{% endif %}
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endif %}
 
               <div class="collapse mt-3" id="preview-{{ doc.id }}">
                 {% set ext = doc.file_path.split('.')[-1] %}
@@ -84,10 +147,9 @@
           {% endfor %}
         </ul>
         {% else %}
-          <p class="text-muted">No documents uploaded yet.</p>
+          <p class="text-muted">No employee documents uploaded yet.</p>
         {% endif %}
       </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/htmx.org@1.9.5"></script>
