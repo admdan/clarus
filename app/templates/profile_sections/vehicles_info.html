@@ -2,11 +2,11 @@
     <div class="alert alert-info d-flex align-items-start mb-3 small mx-3 mt-3">
         <i class="bi bi-shield-lock me-2 mt-1 d-flex"></i>
         <div>
-          Security-sensitive fields like plate numbers and parking permits are locked. Click <strong>Request Change</strong> to notify admin.
+          Vehicle and parking details may support employee records and access workflows. Use <strong>Request Change</strong> for locked fields.
         </div>
     </div>
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">Vehicles Information</h5>
+        <h5 class="card-title mb-0">Vehicle Information</h5>
         <button class="btn btn-sm btn-success"
                 hx-get="{{ url_for('profile.add_vehicles_info') }}?user_id={{ user_id }}"
                 hx-target="#vehicles-info-container"
@@ -33,7 +33,7 @@
             {% endfor %}
         </ul>
     {% else %}
-        <div class="card-body text-muted">No vehicles added.</div>
+        <div class="card-body text-muted">No vehicle records added yet.</div>
     {% endif %}
 </div>
 
