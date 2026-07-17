@@ -2,12 +2,12 @@
     <div class="alert alert-info d-flex align-items-start mb-3 small">
         <i class="bi bi-shield-lock me-2 mt-1 d-flex"></i>
         <div>
-          Identification details are protected. Use the <strong>Request Change</strong> button to request updates.
+          Identity details are protected and reviewed carefully. Use <strong>Request Change</strong> to submit an update for review.
         </div>
     </div>
     <div class="card-header">
         <h5 class="card-title d-flex justify-content-between">
-            Personal Identification Information
+            Identity Details
             <button class="btn btn-sm btn-primary float-end"
                     hx-get="{{ url_for('profile.edit_pii_info') }}?user_id={{ user_id }}"
                     hx-target="#pii-info-container"
